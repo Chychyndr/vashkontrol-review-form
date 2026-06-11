@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Ваш Контроль — форма отзыва</title>
-  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -233,6 +233,92 @@
   </dialog>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <style>
+    .result-row--org { cursor: pointer; }
+    .result-row--org .result-pick { display: none !important; }
+    .result-row--org { grid-template-columns: 1fr !important; }
+    .city-hints {
+      display: grid;
+      gap: 9px;
+      padding: 12px 14px;
+      margin: 10px 0;
+      border: 1px solid #dfe8d7;
+      border-radius: 14px;
+      background: #f8fbf4;
+      color: #4f5a47;
+    }
+    .city-hints__text { font-size: 14px; line-height: 1.4; }
+    .city-hints__text b { color: var(--green-dark); }
+    .city-hints__chips { display: flex; flex-wrap: wrap; gap: 7px; }
+    .city-hints__chips button {
+      border: 1px solid #cfdcc4;
+      border-radius: 999px;
+      padding: 7px 10px;
+      background: #fff;
+      color: var(--green-dark);
+      font-weight: 800;
+    }
+    .city-hints__chips button:hover,
+    .city-hints__chips button:focus-visible {
+      border-color: var(--green);
+      box-shadow: 0 0 0 3px rgba(118, 168, 42, 0.12);
+      outline: none;
+    }
+  </style>
+  <script>
+    (() => {
+      const cities = ["Оренбург", "Орск", "Бузулук", "Новотроицк", "Соль-Илецк", "с. Тоцкое"];
+      const results = document.getElementById("searchResults");
+      const regionInput = document.getElementById("regionInput");
+      if (!results || !regionInput) return;
+
+      document.addEventListener("click", (event) => {
+        const row = event.target.closest(".result-row--org");
+        if (!row || event.target.closest(".result-pick")) return;
+        const pickButton = row.querySelector(".result-pick");
+        if (pickButton) pickButton.click();
+      });
+
+      function renderCityHints() {
+        const rowCount = results.querySelectorAll(".result-row").length;
+        if (!results.children.length || rowCount === 0) return;
+        const content = `
+          <div class="city-hints__text"><b>Найдено: ${rowCount}</b>. Поиск учитывает услугу, организацию, адрес и город. Регион/город можно менять вручную: сейчас <b>${regionInput.value || "не указан"}</b>.</div>
+          <div class="city-hints__chips" aria-label="Подсказки по городам">
+            ${cities.map((city) => `<button type="button" data-city-hint="${city}">${city}</button>`).join("")}
+          </div>`;
+        const oldHint = results.querySelector(".city-hints");
+        if (oldHint) {
+          oldHint.innerHTML = content;
+          return;
+        }
+        const hint = document.createElement("div");
+        hint.className = "city-hints";
+        hint.innerHTML = content;
+        results.prepend(hint);
+      }
+
+      results.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-city-hint]");
+        if (!button) return;
+        regionInput.value = button.dataset.cityHint;
+        regionInput.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+
+      let scheduled = false;
+      const observer = new MutationObserver(() => {
+        if (scheduled) return;
+        scheduled = true;
+        requestAnimationFrame(() => {
+          scheduled = false;
+          renderCityHints();
+        });
+      });
+      observer.observe(results, { childList: true });
+      renderCityHints();
+    })();
+  </script>
   <script src="script.js"></script>
 </body>
 </html>

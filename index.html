@@ -79,7 +79,7 @@
             <input id="serviceDate" type="date" />
           </label>
           <label class="field field--region">
-            <span class="visually-hidden">Автоматически определённый регион</span>
+            <span>Регион</span>
             <input id="regionInput" value="Оренбургская область" autocomplete="off" />
             <small id="regionHint" class="field-hint" hidden></small>
           </label>
@@ -90,9 +90,21 @@
           <label for="mainSearch">Поиск</label>
           <div class="search-input-wrap">
             <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m16.5 16.5 4 4"/></svg>
-            <input id="mainSearch" autocomplete="off" placeholder="Например: паспорт, МФЦ, Росреестр, выписка, права" />
+            <input id="mainSearch" list="searchSuggestions" autocomplete="off" placeholder="Город, организация или услуга: Оренбург МФЦ, паспорт, ЕГРН" />
             <button id="clearSearch" type="button" aria-label="Очистить поиск">×</button>
           </div>
+          <datalist id="searchSuggestions">
+            <option value="Оренбург МФЦ"></option>
+            <option value="Орск МФЦ"></option>
+            <option value="Бузулук МФЦ"></option>
+            <option value="Новотроицк МФЦ"></option>
+            <option value="Соль-Илецк МФЦ"></option>
+            <option value="Тоцкое МФЦ"></option>
+            <option value="Оренбург паспорт"></option>
+            <option value="Оренбург Росреестр ЕГРН"></option>
+            <option value="Оренбург СФР пособие"></option>
+            <option value="Оренбург ГИБДД права"></option>
+          </datalist>
         </div>
 
         <div class="quick-tags-wrap" aria-label="Быстрые примеры поиска">
@@ -235,90 +247,87 @@
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <style>
-    .result-row--org { cursor: pointer; }
+    .result-row--org { cursor: pointer; grid-template-columns: 1fr !important; }
     .result-row--org .result-pick { display: none !important; }
-    .result-row--org { grid-template-columns: 1fr !important; }
-    .city-hints {
-      display: grid;
-      gap: 9px;
-      padding: 12px 14px;
-      margin: 10px 0;
-      border: 1px solid #dfe8d7;
-      border-radius: 14px;
-      background: #f8fbf4;
-      color: #4f5a47;
-    }
-    .city-hints__text { font-size: 14px; line-height: 1.4; }
-    .city-hints__text b { color: var(--green-dark); }
-    .city-hints__chips { display: flex; flex-wrap: wrap; gap: 7px; }
-    .city-hints__chips button {
-      border: 1px solid #cfdcc4;
-      border-radius: 999px;
-      padding: 7px 10px;
-      background: #fff;
-      color: var(--green-dark);
-      font-weight: 800;
-    }
-    .city-hints__chips button:hover,
-    .city-hints__chips button:focus-visible {
-      border-color: var(--green);
-      box-shadow: 0 0 0 3px rgba(118, 168, 42, 0.12);
-      outline: none;
-    }
   </style>
+  <script src="script.js"></script>
   <script>
     (() => {
-      const cities = ["Оренбург", "Орск", "Бузулук", "Новотроицк", "Соль-Илецк", "с. Тоцкое"];
-      const results = document.getElementById("searchResults");
-      const regionInput = document.getElementById("regionInput");
-      if (!results || !regionInput) return;
+      if (typeof state === "undefined") return;
 
-      document.addEventListener("click", (event) => {
-        const row = event.target.closest(".result-row--org");
-        if (!row || event.target.closest(".result-pick")) return;
-        const pickButton = row.querySelector(".result-pick");
-        if (pickButton) pickButton.click();
-      });
+      renderBrowseTabs = function () {
+        return `
+          <div class="browse-tabs" role="tablist" aria-label="Способ выбора">
+            <button class="browse-tab ${state.browseMode === "organizations" ? "is-active" : ""}" type="button" data-browse-tab="organizations">Организации</button>
+            <button class="browse-tab ${state.browseMode === "services" ? "is-active" : ""}" type="button" data-browse-tab="services">Услуги</button>
+          </div>
+        `;
+      };
 
-      function renderCityHints() {
-        const rowCount = results.querySelectorAll(".result-row").length;
-        if (!results.children.length || rowCount === 0) return;
-        const content = `
-          <div class="city-hints__text"><b>Найдено: ${rowCount}</b>. Поиск учитывает услугу, организацию, адрес и город. Регион/город можно менять вручную: сейчас <b>${regionInput.value || "не указан"}</b>.</div>
-          <div class="city-hints__chips" aria-label="Подсказки по городам">
-            ${cities.map((city) => `<button type="button" data-city-hint="${city}">${city}</button>`).join("")}
-          </div>`;
-        const oldHint = results.querySelector(".city-hints");
-        if (oldHint) {
-          oldHint.innerHTML = content;
-          return;
-        }
-        const hint = document.createElement("div");
-        hint.className = "city-hints";
-        hint.innerHTML = content;
-        results.prepend(hint);
+      renderOrgRow = function (org, { serviceId = null, pickMode = "browse" } = {}) {
+        const buttonAttr = pickMode === "select"
+          ? `data-service-id="${serviceId}" data-org-id="${org.id}"`
+          : `data-pick-org="${org.id}"`;
+        const location = [org.city, org.address].filter(Boolean).join(", ") || org.region;
+        return `
+          <button class="result-row result-row--org" type="button" ${buttonAttr}>
+            <span>
+              <strong>${escapeHtml(org.name)}</strong>
+              <small>${escapeHtml(location)}</small>
+              <span class="result-tags">
+                <span class="tag tag--green">${org.type === "mfc" ? "МФЦ" : "Ведомство"}</span>
+                <span class="tag">${escapeHtml(org.region)}</span>
+                <span class="tag">${org.reviews} отзывов</span>
+              </span>
+            </span>
+          </button>
+        `;
+      };
+
+      renderServiceList = function () {
+        const items = getVisibleServices();
+        elements.results.innerHTML = `
+          ${renderBrowseTabs()}
+          <div class="results-head"><h3>${getServicesTitle()}</h3><p>Выберите услугу, затем организацию.</p></div>
+          <div class="browse-list">
+            ${items.map((service) => `
+              <button class="result-row result-row--org" type="button" data-pick-service="${service.id}">
+                <span>
+                  <strong>${escapeHtml(service.title)}</strong>
+                  <small>${escapeHtml(service.category)} · код услуги: ${escapeHtml(service.code)}</small>
+                  <span class="result-tags">
+                    <span class="tag tag--green">${getOrganizationsForService(service.id).length} организаций</span>
+                  </span>
+                </span>
+              </button>
+            `).join("")}
+          </div>
+        `;
+        bindBrowseTabs();
+        elements.results.querySelectorAll("[data-pick-service]").forEach((button) => {
+          button.addEventListener("click", () => {
+            state.browseServiceId = button.dataset.pickService;
+            state.browseOrgId = null;
+            runSearch();
+          });
+        });
+      };
+
+      function preferOrganizations() {
+        state.browseMode = "organizations";
+        state.browseOrgId = null;
+        state.browseServiceId = null;
+        runSearch();
       }
 
-      results.addEventListener("click", (event) => {
-        const button = event.target.closest("[data-city-hint]");
-        if (!button) return;
-        regionInput.value = button.dataset.cityHint;
-        regionInput.dispatchEvent(new Event("input", { bubbles: true }));
+      document.querySelectorAll('input[name="searchMode"]').forEach((input) => {
+        input.addEventListener("change", preferOrganizations);
       });
+      document.getElementById("changeSelection")?.addEventListener("click", preferOrganizations);
 
-      let scheduled = false;
-      const observer = new MutationObserver(() => {
-        if (scheduled) return;
-        scheduled = true;
-        requestAnimationFrame(() => {
-          scheduled = false;
-          renderCityHints();
-        });
-      });
-      observer.observe(results, { childList: true });
-      renderCityHints();
+      state.browseMode = "organizations";
+      runSearch();
     })();
   </script>
-  <script src="script.js"></script>
 </body>
 </html>

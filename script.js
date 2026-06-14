@@ -1,6 +1,7 @@
 const DEFAULT_REGION_TITLE = "";
 const IP_GEOLOCATION_URL = "https://ipwho.is/?lang=ru";
 const DRAFT_KEY = "vashkontrol-review-draft-practical";
+const RESULTS_LIMIT = 5;
 
 const catalog = {
   regions: [],
@@ -460,9 +461,9 @@ function renderRegionDropdown(query) {
 }
 
 function getRegionMeta(region) {
-  if (region.type === "city") return region.region;
-  if (["Москва", "Санкт-Петербург", "Севастополь"].includes(region.title)) return "город федерального значения";
-  return "регион";
+  if (region.type === "city") return `Город, ${region.region}`;
+  if (["Москва", "Санкт-Петербург", "Севастополь"].includes(region.title)) return "Город федерального значения";
+  return "Регион России";
 }
 
 function handleRegionKeydown(event) {
@@ -515,7 +516,7 @@ function closeRegionDropdown() {
 
 function updateRegionHint() {
   const needsChoice = elements.region.value.trim() && !state.selectedRegion;
-  elements.regionHint.textContent = needsChoice ? "Выберите регион из списка, чтобы выдача была точнее." : "";
+  elements.regionHint.textContent = needsChoice ? "Нажмите вариант в списке." : "";
   elements.regionHint.hidden = !needsChoice;
 }
 
@@ -609,9 +610,9 @@ function getVisibleServices(orgId = null) {
     .sort((a, b) => (b.popularity || 0) - (a.popularity || 0) || a.title.localeCompare(b.title, "ru"));
 }
 
-function searchOrganizations(query) {
+function searchOrganizations(query, serviceId = null) {
   const tokens = tokenize(query);
-  return getVisibleOrganizations()
+  return getVisibleOrganizations(serviceId)
     .map((org) => ({ org, score: tokens.length ? scoreOrganization(org, tokens) : 0 }))
     .filter((item) => !tokens.length || item.score > 0)
     .sort((a, b) => b.score - a.score || getOrgRegionPriority(b.org, state.selectedRegion) - getOrgRegionPriority(a.org, state.selectedRegion) || byPopularity(a.org, b.org))
@@ -626,9 +627,9 @@ function scoreOrganization(org, tokens) {
   return scoreText(tokens, [org.name, org.agency, org.address, org.region, org.city, org.aliases, serviceParts]);
 }
 
-function searchServices(query) {
+function searchServices(query, orgId = null) {
   const tokens = tokenize(query);
-  return getVisibleServices()
+  return getVisibleServices(orgId)
     .map((service) => ({ service, score: tokens.length ? scoreText(tokens, [service.title, service.category, service.code, service.synonyms]) : 0 }))
     .filter((item) => !tokens.length || item.score > 0)
     .sort((a, b) => b.score - a.score || (b.service.popularity || 0) - (a.service.popularity || 0) || a.service.title.localeCompare(b.service.title, "ru"))
@@ -670,30 +671,35 @@ function runSearch() {
 
 function renderOrganizationSearch() {
   const query = elements.search.value.trim();
+  const selectedService = getSelectedService();
 
-  if (!state.selectedRegion && !query) {
+  if (!state.selectedRegion && !query && !selectedService) {
     elements.results.innerHTML = `<div class="empty-result">Выберите регион, чтобы увидеть организации рядом с вами.</div>`;
     return;
   }
 
-  const orgs = searchOrganizations(query);
+  const orgs = searchOrganizations(query, selectedService?.id).slice(0, RESULTS_LIMIT);
   if (!orgs.length) {
     elements.results.innerHTML = `<div class="empty-result">В выбранном регионе ничего не найдено. Попробуйте другое название или нажмите «Не нашёл в списке».</div>`;
     return;
   }
 
   elements.results.innerHTML = `
-    <div class="results-head"><h3>Организации</h3><p>Выберите организацию, где получали услугу.</p></div>
+    <div class="results-head">
+      <h3>${selectedService ? "Организации для выбранной услуги" : "Организации"}</h3>
+      <p>${selectedService ? `Услуга выбрана: ${escapeHtml(selectedService.title)}. Выберите организацию.` : "Выберите организацию, где получали услугу."}</p>
+    </div>
     <div class="browse-list">
-      ${orgs.map((org) => renderOrgRow(org, { action: "pick-org" })).join("")}
+      ${orgs.map((org) => renderOrgRow(org, { action: selectedService ? "select-org" : "pick-org", serviceId: selectedService?.id || "" })).join("")}
     </div>
   `;
 }
 
 function renderServiceSearch() {
   const query = elements.search.value.trim();
-  const services = searchServices(query);
-  const note = !state.selectedRegion
+  const selectedOrg = getSelectedOrg();
+  const services = searchServices(query, selectedOrg?.id).slice(0, RESULTS_LIMIT);
+  const note = !state.selectedRegion && !selectedOrg
     ? `<div class="empty-result empty-result--soft">Можно искать услугу сразу, но регион поможет показать подходящие организации.</div>`
     : "";
 
@@ -704,9 +710,12 @@ function renderServiceSearch() {
 
   elements.results.innerHTML = `
     ${note}
-    <div class="results-head"><h3>Услуги</h3><p>Выберите услугу, затем организацию.</p></div>
+    <div class="results-head">
+      <h3>${selectedOrg ? "Услуги в выбранной организации" : "Услуги"}</h3>
+      <p>${selectedOrg ? `Организация выбрана: ${escapeHtml(selectedOrg.name)}. Выберите услугу.` : "Выберите услугу, затем организацию."}</p>
+    </div>
     <div class="browse-list">
-      ${services.map((service) => renderServiceRow(service, { action: "pick-service" })).join("")}
+      ${services.map((service) => renderServiceRow(service, { action: selectedOrg ? "select-service" : "pick-service", orgId: selectedOrg?.id || "" })).join("")}
     </div>
   `;
 }
@@ -742,7 +751,7 @@ function renderServiceOrganizations() {
     return;
   }
 
-  const orgs = getVisibleOrganizations(service.id);
+  const orgs = getVisibleOrganizations(service.id).slice(0, RESULTS_LIMIT);
   const content = orgs.length
     ? `<div class="browse-list">${orgs.map((org) => renderOrgRow(org, { action: "select-org", serviceId: service.id })).join("")}</div>`
     : `<div class="empty-result">Эта услуга пока не связана с организациями выбранного региона.</div>`;
@@ -780,7 +789,7 @@ function renderOrgRow(org, { action, serviceId = "" } = {}) {
 
 function renderServiceRow(service, { action, orgId = "" } = {}) {
   return `
-    <button class="result-row" type="button" data-action="${action}" data-service-id="${service.id}" data-org-id="${orgId}">
+    <button class="result-row result-row--service" type="button" data-action="${action}" data-service-id="${service.id}" data-org-id="${orgId}">
       <span>
         <strong>${escapeHtml(service.title)}</strong>
         <small>${escapeHtml(service.category)}${service.code ? ` · код услуги: ${escapeHtml(service.code)}` : ""}</small>
@@ -808,27 +817,48 @@ function handleResultsClick(event) {
   if (!button) return;
 
   if (button.dataset.action === "pick-org") {
-    state.pendingOrgId = button.dataset.orgId;
+    state.selectedOrgId = button.dataset.orgId;
+    state.selectedServiceId = null;
+    state.pendingOrgId = null;
     state.pendingServiceId = null;
+    state.searchTab = "services";
+    elements.search.value = "";
+    elements.selectionError.hidden = true;
+    updateSearchTabUi();
+    updateSelectedBox();
     runSearch();
+    updateSteps();
+    showToast("Организация выбрана. Теперь выберите услугу");
+    elements.search.focus();
   }
 
   if (button.dataset.action === "pick-service") {
-    state.pendingServiceId = button.dataset.serviceId;
+    state.selectedServiceId = button.dataset.serviceId;
+    state.selectedOrgId = null;
+    state.pendingServiceId = null;
     state.pendingOrgId = null;
+    state.searchTab = "organizations";
+    elements.search.value = "";
+    elements.selectionError.hidden = true;
+    updateSearchTabUi();
+    updateSelectedBox();
     runSearch();
+    updateSteps();
+    showToast("Услуга выбрана. Теперь выберите организацию");
+    elements.search.focus();
   }
 
   if (button.dataset.action === "select-service") {
-    selectPair(button.dataset.serviceId, button.dataset.orgId);
+    selectPair(button.dataset.serviceId, button.dataset.orgId || state.selectedOrgId);
   }
 
   if (button.dataset.action === "select-org") {
-    selectPair(button.dataset.serviceId, button.dataset.orgId);
+    selectPair(button.dataset.serviceId || state.selectedServiceId, button.dataset.orgId);
   }
 }
 
 function selectPair(serviceId, orgId) {
+  if (!serviceId || !orgId) return;
   state.selectedServiceId = serviceId;
   state.selectedOrgId = orgId;
   state.pendingOrgId = null;
@@ -853,9 +883,9 @@ function dropUnavailableSelection() {
 function updateSelectedBox() {
   const service = getSelectedService();
   const org = getSelectedOrg();
-  const selected = Boolean(service && org);
+  const hasSelection = Boolean(service || org);
 
-  if (!selected) {
+  if (!hasSelection) {
     elements.selectedServiceName.textContent = "";
     elements.selectedServiceMeta.textContent = "";
     elements.selectedOrgName.textContent = "";
@@ -864,10 +894,16 @@ function updateSelectedBox() {
     return;
   }
 
-  elements.selectedServiceName.textContent = service.title;
-  elements.selectedServiceMeta.textContent = `${service.category} · код услуги: ${service.code}`;
-  elements.selectedOrgName.textContent = org.name;
-  elements.selectedOrgMeta.textContent = `${org.type === "mfc" ? "МФЦ" : org.agency} · ${[org.city, org.address].filter(Boolean).join(", ") || org.region}`;
+  elements.selectedServiceName.textContent = service ? service.title : "Выберите услугу во вкладке «Услуги»";
+  elements.selectedServiceMeta.textContent = service
+    ? `${service.category} · код услуги: ${service.code}`
+    : "Организация уже выбрана";
+  elements.selectedOrgName.textContent = org ? org.name : "Выберите организацию во вкладке «Организации»";
+  elements.selectedOrgMeta.textContent = org
+    ? `${org.type === "mfc" ? "МФЦ" : org.agency} · ${[org.city, org.address].filter(Boolean).join(", ") || org.region}`
+    : "Услуга уже выбрана";
+  elements.selectedBox.querySelector(".selected-box__item--service")?.classList.toggle("is-missing", !service);
+  elements.selectedBox.querySelector(".selected-box__item--org")?.classList.toggle("is-missing", !org);
   elements.selectedBox.hidden = false;
 }
 
@@ -1258,12 +1294,12 @@ function buildPayload(status) {
 
 function updateSteps() {
   const selected = Boolean(state.selectedServiceId && state.selectedOrgId);
+  const hasPartialSelection = Boolean(state.selectedServiceId || state.selectedOrgId);
   const ratingsDone = Object.values(state.ratings).every(Boolean);
-  const detailsTouched = Boolean(elements.comment.value.trim() || state.photos.length || elements.video.value.trim() || elements.officialAnswer.checked);
 
-  setStep(1, selected ? "done" : "active");
-  setStep(2, selected && !ratingsDone ? "active" : ratingsDone ? "done" : "");
-  setStep(3, ratingsDone && !detailsTouched ? "active" : ratingsDone && detailsTouched ? "done" : "");
+  setStep(1, selected ? "done" : hasPartialSelection ? "active" : "");
+  setStep(2, selected ? (ratingsDone ? "done" : "active") : "");
+  setStep(3, selected && ratingsDone ? "done" : "");
   setStep(4, selected && ratingsDone ? "active" : "");
 }
 
@@ -1319,8 +1355,8 @@ function setDetectedRegion(region, source, silent) {
   state.selectedRegion = region;
   elements.region.value = region.title;
   elements.regionHint.textContent = source === "ip"
-    ? "Подставили по IP. Можно изменить вручную."
-    : "Подставили по данным браузера. Можно изменить вручную.";
+    ? "Регион подставлен по IP. Можно изменить."
+    : "Регион подставлен автоматически. Можно изменить.";
   elements.regionHint.hidden = false;
   if (!silent) showToast("Регион подставлен автоматически");
   runSearch();

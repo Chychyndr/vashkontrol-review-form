@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light" />
+  <meta name="darkreader-lock" />
   <title>Ваш Контроль — форма отзыва</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <link rel="stylesheet" href="styles.css" />
@@ -128,18 +130,18 @@
         </div>
 
         <div class="selected-box" id="selectedBox" hidden>
-          <div class="selected-box__item">
-            <span class="selected-box__badge" aria-hidden="true">Услуга</span>
-            <div class="selected-box__content">
-              <b id="selectedServiceName"></b>
-              <small id="selectedServiceMeta"></small>
-            </div>
-          </div>
-          <div class="selected-box__item">
+          <div class="selected-box__item selected-box__item--org">
             <span class="selected-box__badge selected-box__badge--org" aria-hidden="true">Организация</span>
             <div class="selected-box__content">
               <b id="selectedOrgName"></b>
               <small id="selectedOrgMeta"></small>
+            </div>
+          </div>
+          <div class="selected-box__item selected-box__item--service">
+            <span class="selected-box__badge" aria-hidden="true">Услуга</span>
+            <div class="selected-box__content">
+              <b id="selectedServiceName"></b>
+              <small id="selectedServiceMeta"></small>
             </div>
           </div>
           <button class="selected-box__edit" type="button" id="changeSelection">Изменить</button>

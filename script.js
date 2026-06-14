@@ -37,8 +37,16 @@ const questionHints = {
 };
 
 const quickTagsByTab = {
-  organizations: ["МФЦ", "Росреестр", "МВД", "СФР", "ФНС", "ЗАГС"],
-  services: ["паспорт", "загранпаспорт", "ЕГРН", "пособие", "права", "ИНН"]
+  organizations: {
+    any: ["МФЦ", "Росреестр", "МВД", "СФР", "ФНС"],
+    mfc: ["МФЦ", "Мои Документы", "Центр госуслуг"],
+    department: ["Росреестр", "МВД", "СФР", "ФНС", "ЗАГС"]
+  },
+  services: {
+    any: ["паспорт", "загранпаспорт", "ЕГРН", "пособие", "права"],
+    mfc: ["паспорт", "ЕГРН", "ИНН", "СНИЛС", "пособие"],
+    department: ["Росреестр", "МВД", "СФР", "ФНС", "ЗАГС"]
+  }
 };
 
 const IP_LOCATION_ALIASES = {
@@ -264,6 +272,7 @@ function bindEvents() {
   $$('input[name="searchMode"]').forEach((input) => input.addEventListener("change", () => {
     state.pendingOrgId = null;
     state.pendingServiceId = null;
+    renderQuickTags();
     dropUnavailableSelection();
     runSearch();
   }));
@@ -410,9 +419,14 @@ function updateSearchTabUi() {
 }
 
 function renderQuickTags() {
-  elements.quickTags.innerHTML = quickTagsByTab[state.searchTab]
+  elements.quickTags.innerHTML = getQuickTags()
     .map((tag) => `<button type="button" data-query="${escapeHtml(tag)}">${escapeHtml(tag)}</button>`)
     .join("");
+}
+
+function getQuickTags() {
+  const tabTags = quickTagsByTab[state.searchTab] || {};
+  return tabTags[getSearchMode()] || tabTags.any || [];
 }
 
 function getRegionMatches(query) {
@@ -620,11 +634,15 @@ function searchOrganizations(query, serviceId = null) {
 }
 
 function scoreOrganization(org, tokens) {
-  const serviceParts = org.services
-    .map(getService)
-    .filter(Boolean)
-    .flatMap((service) => [service.title, service.category, service.code, service.synonyms]);
-  return scoreText(tokens, [org.name, org.agency, org.address, org.region, org.city, org.aliases, serviceParts]);
+  const primaryScore = scoreText(tokens, [org.name, org.agency, org.address, org.region, org.city, org.aliases]);
+  if (!primaryScore) return 0;
+
+  const normalizedAgency = normalize(org.agency);
+  const normalizedName = normalize(org.name);
+  const exactAgencyHit = tokens.some((token) => normalizedAgency === token || normalizedName.startsWith(token));
+  const exactTypeHit = org.type === "mfc" && tokens.some((token) => ["мфц", "мои", "документы"].includes(token));
+
+  return primaryScore * 10 + (exactAgencyHit || exactTypeHit ? 1000 : 0);
 }
 
 function searchServices(query, orgId = null) {

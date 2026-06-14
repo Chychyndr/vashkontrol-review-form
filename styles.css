@@ -373,7 +373,9 @@ h1 {
 }
 .combo-option {
   width: 100%;
-  display: grid;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   gap: 3px;
   min-height: 54px;
   padding: 9px 10px;
@@ -383,12 +385,26 @@ h1 {
   color: var(--text);
   text-align: left;
 }
+.combo-option strong {
+  max-width: 100%;
+  line-height: 1.25;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
 .combo-option:hover, .combo-option.is-active {
   background: var(--green-soft);
 }
 .combo-option small, .combo-empty {
   color: var(--muted);
   font-size: 13px;
+  line-height: 1.25;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.combo-option small {
+  justify-self: auto;
+  margin: 0;
+  pointer-events: auto;
 }
 .combo-empty { padding: 10px; }
 .date-field {

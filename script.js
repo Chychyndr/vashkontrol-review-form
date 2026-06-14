@@ -1,3 +1,6 @@
+const DEFAULT_REGION = "Оренбургская область";
+const IP_GEOLOCATION_URL = "https://ipwho.is/?lang=ru";
+
 // Тестовый справочник услуг: в прототипе он заменяет данные, которые обычно приходят с сервера.
 const services = [
   {
@@ -144,6 +147,100 @@ const services = [
     popularity: 390,
     synonyms: ["земля", "земельный участок", "администрация", "муниципальная услуга", "участок"]
   }
+];
+
+// Статический справочник локаций для поля региона. Полный реестр МФЦ и ведомств обычно приходит с сервера.
+const russianLocations = [
+  { region: "Федеральный уровень", cities: [] },
+  { region: "Республика Адыгея", cities: ["Майкоп"] },
+  { region: "Республика Алтай", cities: ["Горно-Алтайск"] },
+  { region: "Республика Башкортостан", cities: ["Уфа", "Стерлитамак", "Салават", "Нефтекамск", "Октябрьский"] },
+  { region: "Республика Бурятия", cities: ["Улан-Удэ"] },
+  { region: "Республика Дагестан", cities: ["Махачкала", "Дербент", "Хасавюрт"] },
+  { region: "Донецкая Народная Республика", cities: ["Донецк", "Мариуполь", "Макеевка"] },
+  { region: "Республика Ингушетия", cities: ["Магас", "Назрань"] },
+  { region: "Кабардино-Балкарская Республика", cities: ["Нальчик"] },
+  { region: "Республика Калмыкия", cities: ["Элиста"] },
+  { region: "Карачаево-Черкесская Республика", cities: ["Черкесск"] },
+  { region: "Республика Карелия", cities: ["Петрозаводск"] },
+  { region: "Республика Коми", cities: ["Сыктывкар", "Ухта", "Воркута"] },
+  { region: "Республика Крым", cities: ["Симферополь", "Керчь", "Ялта", "Евпатория"] },
+  { region: "Луганская Народная Республика", cities: ["Луганск", "Алчевск"] },
+  { region: "Республика Марий Эл", cities: ["Йошкар-Ола"] },
+  { region: "Республика Мордовия", cities: ["Саранск"] },
+  { region: "Республика Саха (Якутия)", cities: ["Якутск", "Нерюнгри"] },
+  { region: "Республика Северная Осетия - Алания", cities: ["Владикавказ"] },
+  { region: "Республика Татарстан", cities: ["Казань", "Набережные Челны", "Нижнекамск", "Альметьевск"] },
+  { region: "Республика Тыва", cities: ["Кызыл"] },
+  { region: "Удмуртская Республика", cities: ["Ижевск", "Сарапул", "Глазов"] },
+  { region: "Республика Хакасия", cities: ["Абакан"] },
+  { region: "Чеченская Республика", cities: ["Грозный"] },
+  { region: "Чувашская Республика", cities: ["Чебоксары", "Новочебоксарск"] },
+  { region: "Алтайский край", cities: ["Барнаул", "Бийск", "Рубцовск"] },
+  { region: "Забайкальский край", cities: ["Чита"] },
+  { region: "Камчатский край", cities: ["Петропавловск-Камчатский"] },
+  { region: "Краснодарский край", cities: ["Краснодар", "Сочи", "Новороссийск", "Армавир"] },
+  { region: "Красноярский край", cities: ["Красноярск", "Норильск", "Ачинск"] },
+  { region: "Пермский край", cities: ["Пермь", "Березники", "Соликамск"] },
+  { region: "Приморский край", cities: ["Владивосток", "Уссурийск", "Находка", "Артём"] },
+  { region: "Ставропольский край", cities: ["Ставрополь", "Пятигорск", "Кисловодск", "Невинномысск", "Ессентуки"] },
+  { region: "Хабаровский край", cities: ["Хабаровск", "Комсомольск-на-Амуре"] },
+  { region: "Амурская область", cities: ["Благовещенск"] },
+  { region: "Архангельская область", cities: ["Архангельск", "Северодвинск"] },
+  { region: "Астраханская область", cities: ["Астрахань"] },
+  { region: "Белгородская область", cities: ["Белгород", "Старый Оскол"] },
+  { region: "Брянская область", cities: ["Брянск"] },
+  { region: "Владимирская область", cities: ["Владимир", "Ковров", "Муром"] },
+  { region: "Волгоградская область", cities: ["Волгоград", "Волжский"] },
+  { region: "Вологодская область", cities: ["Вологда", "Череповец"] },
+  { region: "Воронежская область", cities: ["Воронеж"] },
+  { region: "Запорожская область", cities: ["Мелитополь", "Бердянск"] },
+  { region: "Ивановская область", cities: ["Иваново"] },
+  { region: "Иркутская область", cities: ["Иркутск", "Братск", "Ангарск"] },
+  { region: "Калининградская область", cities: ["Калининград"] },
+  { region: "Калужская область", cities: ["Калуга", "Обнинск"] },
+  { region: "Кемеровская область - Кузбасс", cities: ["Кемерово", "Новокузнецк", "Прокопьевск"] },
+  { region: "Кировская область", cities: ["Киров"] },
+  { region: "Костромская область", cities: ["Кострома"] },
+  { region: "Курганская область", cities: ["Курган"] },
+  { region: "Курская область", cities: ["Курск"] },
+  { region: "Ленинградская область", cities: ["Гатчина", "Выборг", "Всеволожск", "Кириши"] },
+  { region: "Липецкая область", cities: ["Липецк", "Елец"] },
+  { region: "Магаданская область", cities: ["Магадан"] },
+  { region: "Московская область", cities: ["Красногорск", "Балашиха", "Химки", "Подольск", "Мытищи", "Люберцы", "Королёв", "Одинцово", "Домодедово", "Электросталь", "Коломна", "Сергиев Посад", "Раменское", "Щёлково"] },
+  { region: "Мурманская область", cities: ["Мурманск", "Апатиты"] },
+  { region: "Нижегородская область", cities: ["Нижний Новгород", "Дзержинск", "Арзамас"] },
+  { region: "Новгородская область", cities: ["Великий Новгород"] },
+  { region: "Новосибирская область", cities: ["Новосибирск", "Бердск"] },
+  { region: "Омская область", cities: ["Омск"] },
+  { region: "Оренбургская область", cities: ["Оренбург", "Орск", "Бузулук", "Новотроицк", "Соль-Илецк", "Тоцкое", "Тоцкое Второе"] },
+  { region: "Орловская область", cities: ["Орёл"] },
+  { region: "Пензенская область", cities: ["Пенза"] },
+  { region: "Псковская область", cities: ["Псков", "Великие Луки"] },
+  { region: "Ростовская область", cities: ["Ростов-на-Дону", "Таганрог", "Шахты", "Новочеркасск", "Волгодонск", "Батайск"] },
+  { region: "Рязанская область", cities: ["Рязань"] },
+  { region: "Самарская область", cities: ["Самара", "Тольятти", "Сызрань", "Новокуйбышевск"] },
+  { region: "Саратовская область", cities: ["Саратов", "Энгельс", "Балаково"] },
+  { region: "Сахалинская область", cities: ["Южно-Сахалинск"] },
+  { region: "Свердловская область", cities: ["Екатеринбург", "Нижний Тагил", "Каменск-Уральский", "Первоуральск"] },
+  { region: "Смоленская область", cities: ["Смоленск"] },
+  { region: "Тамбовская область", cities: ["Тамбов", "Мичуринск"] },
+  { region: "Тверская область", cities: ["Тверь", "Ржев"] },
+  { region: "Томская область", cities: ["Томск", "Северск"] },
+  { region: "Тульская область", cities: ["Тула", "Новомосковск"] },
+  { region: "Тюменская область", cities: ["Тюмень", "Тобольск", "Ишим"] },
+  { region: "Ульяновская область", cities: ["Ульяновск", "Димитровград"] },
+  { region: "Херсонская область", cities: ["Херсон", "Геническ"] },
+  { region: "Челябинская область", cities: ["Челябинск", "Магнитогорск", "Миасс", "Златоуст", "Копейск"] },
+  { region: "Ярославская область", cities: ["Ярославль", "Рыбинск"] },
+  { region: "Москва", cities: [] },
+  { region: "Санкт-Петербург", cities: [] },
+  { region: "Севастополь", cities: [] },
+  { region: "Еврейская автономная область", cities: ["Биробиджан"] },
+  { region: "Ненецкий автономный округ", cities: ["Нарьян-Мар"] },
+  { region: "Ханты-Мансийский автономный округ - Югра", cities: ["Ханты-Мансийск", "Сургут", "Нижневартовск", "Нефтеюганск", "Нягань"] },
+  { region: "Чукотский автономный округ", cities: ["Анадырь"] },
+  { region: "Ямало-Ненецкий автономный округ", cities: ["Салехард", "Новый Уренгой", "Ноябрьск"] }
 ];
 
 // Тестовый справочник организаций. Поле services связывает организацию с доступными услугами.
@@ -419,9 +516,10 @@ const questionHints = {
 const state = {
   selectedServiceId: null,
   selectedOrgId: null,
-  browseMode: "services",
+  browseMode: "organizations",
   browseOrgId: null,
   browseServiceId: null,
+  regionTouched: false,
   ratings: Object.fromEntries(questions.map((item) => [item.id, 0])),
   photos: [],
   openHelpId: null
@@ -430,12 +528,46 @@ const state = {
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
 
+const GENERIC_LOCATION_WORDS = new Set([
+  "город", "область", "области", "край", "республика", "автономная", "автономный",
+  "округ", "уровень", "федеральный", "г", "с", "поселок", "посёлок"
+]);
+
+const IP_LOCATION_ALIASES = {
+  "moscow": "Москва",
+  "moskva": "Москва",
+  "moscow oblast": "Московская область",
+  "moskovskaya oblast": "Московская область",
+  "saint petersburg": "Санкт-Петербург",
+  "st petersburg": "Санкт-Петербург",
+  "sankt peterburg": "Санкт-Петербург",
+  "orenburg": "Оренбург",
+  "orenburg oblast": "Оренбургская область",
+  "samara": "Самара",
+  "samara oblast": "Самарская область",
+  "kazan": "Казань",
+  "tatarstan": "Республика Татарстан",
+  "republic of tatarstan": "Республика Татарстан",
+  "novosibirsk": "Новосибирск",
+  "novosibirsk oblast": "Новосибирская область",
+  "yekaterinburg": "Екатеринбург",
+  "sverdlovsk oblast": "Свердловская область",
+  "nizhny novgorod": "Нижний Новгород",
+  "krasnodar": "Краснодар",
+  "krasnodar krai": "Краснодарский край"
+};
+
+let regionOptionsCache = null;
+let locationPhrasesCache = null;
+let locationTokenCache = null;
+
 // Кэшируем элементы страницы один раз, чтобы функции ниже не искали их повторно.
 const elements = {
   form: $("#reviewForm"),
   search: $("#mainSearch"),
   clearSearch: $("#clearSearch"),
   region: $("#regionInput"),
+  regionSuggestions: $("#regionSuggestions"),
   regionHint: $("#regionHint"),
   receiveType: $("#receiveType"),
   serviceDate: $("#serviceDate"),
@@ -470,6 +602,7 @@ init();
 
 function init() {
   // Порядок важен: сначала готовим поля и восстановление, потом подписки и первичная отрисовка.
+  populateRegionSuggestions();
   configureDateInput();
   renderRatings();
   restoreDraft();
@@ -485,7 +618,13 @@ function init() {
 function bindEvents() {
   // Все обработчики собраны в одном месте, чтобы сценарий формы было проще проследить.
   elements.search.addEventListener("input", runSearch);
-  elements.region.addEventListener("input", () => { state.browseOrgId = null; state.browseServiceId = null; runSearch(); });
+  elements.region.addEventListener("input", () => {
+    state.regionTouched = true;
+    state.browseOrgId = null;
+    state.browseServiceId = null;
+    if (elements.regionHint) elements.regionHint.hidden = true;
+    runSearch();
+  });
   elements.receiveType.addEventListener("change", () => { runSearch(); updateSteps(); });
   elements.serviceDate.addEventListener("change", () => { elements.dateError.hidden = true; updateSteps(); });
   elements.stage.addEventListener("change", updateSteps);
@@ -498,7 +637,7 @@ function bindEvents() {
   });
 
   $$('input[name="searchMode"]').forEach((input) => input.addEventListener("change", () => {
-    state.browseMode = "services";
+    state.browseMode = "organizations";
     state.browseOrgId = null;
     state.browseServiceId = null;
     runSearch();
@@ -515,7 +654,7 @@ function bindEvents() {
   $("#changeSelection").addEventListener("click", () => {
     state.selectedServiceId = null;
     state.selectedOrgId = null;
-    state.browseMode = "services";
+    state.browseMode = "organizations";
     state.browseOrgId = null;
     state.browseServiceId = null;
     updateSelectedBox();
@@ -587,12 +726,149 @@ function bindEvents() {
   $("#sendCatalogProblem").addEventListener("click", sendCatalogProblem);
 }
 
+function getRegionOptions() {
+  if (regionOptionsCache) return regionOptionsCache;
+
+  const seen = new Set();
+  const options = [];
+  const addOption = (value, region, city = "") => {
+    const key = normalize(value);
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    options.push({ value, region, city });
+  };
+
+  russianLocations.forEach(({ region, cities }) => {
+    addOption(region, region);
+    cities.forEach((city) => addOption(`${city}, ${region}`, region, city));
+  });
+
+  regionOptionsCache = options.sort((a, b) => a.value.localeCompare(b.value, "ru"));
+  return regionOptionsCache;
+}
+
+function populateRegionSuggestions() {
+  if (!elements.regionSuggestions) return;
+  elements.regionSuggestions.innerHTML = getRegionOptions()
+    .map(({ value }) => `<option value="${escapeHtml(value)}"></option>`)
+    .join("");
+}
+
+function getKnownLocationPhrases() {
+  if (locationPhrasesCache) return locationPhrasesCache;
+
+  const phrases = new Set();
+  russianLocations.forEach(({ region, cities }) => {
+    phrases.add(normalize(region));
+    cities.forEach((city) => phrases.add(normalize(city)));
+  });
+
+  locationPhrasesCache = [...phrases]
+    .filter((phrase) => phrase && !GENERIC_LOCATION_WORDS.has(phrase))
+    .sort((a, b) => b.length - a.length);
+  return locationPhrasesCache;
+}
+
+function getKnownLocationTokens() {
+  if (locationTokenCache) return locationTokenCache;
+  locationTokenCache = new Set(
+    getKnownLocationPhrases()
+      .flatMap((phrase) => phrase.split(" "))
+      .filter((token) => token && !GENERIC_LOCATION_WORDS.has(token))
+  );
+  return locationTokenCache;
+}
+
+function stripLocationFromQuery(value) {
+  let result = normalize(value);
+  getKnownLocationPhrases().forEach((phrase) => {
+    result = result.replace(new RegExp(`(^|\\s)${escapeRegExp(phrase)}(?=\\s|$)`, "g"), " ");
+  });
+  const locationTokens = getKnownLocationTokens();
+  return result
+    .split(" ")
+    .filter((token) => token && !GENERIC_LOCATION_WORDS.has(token) && !locationTokens.has(token))
+    .join(" ");
+}
+
+function getMainSearchTokens() {
+  return tokenize(stripLocationFromQuery(elements.search.value));
+}
+
+function getLocationContext(value = elements.region.value) {
+  const input = value.trim();
+  const match = findLocationByValue(input);
+  const tokens = tokenize(match ? [match.city, match.region].filter(Boolean).join(" ") : input)
+    .filter((token) => !GENERIC_LOCATION_WORDS.has(token));
+  return {
+    value: match?.value || input,
+    region: match?.region || "",
+    city: match?.city || "",
+    tokens
+  };
+}
+
+function findLocationByValue(value) {
+  const normalized = normalize(value);
+  if (!normalized) return null;
+
+  const options = getRegionOptions();
+  return options.find((option) => normalize(option.value) === normalized)
+    || options.find((option) => option.city && normalize(option.city) === normalized)
+    || options.find((option) => normalize(option.region) === normalized)
+    || null;
+}
+
+function findLocationByParts(city, region) {
+  const normalizedCity = normalize(localizeIpLocationPart(city));
+  const normalizedRegion = normalize(localizeIpLocationPart(region));
+  const options = getRegionOptions();
+
+  if (normalizedCity && normalizedRegion) {
+    const exactCity = options.find((option) =>
+      option.city && normalize(option.city) === normalizedCity && normalize(option.region) === normalizedRegion
+    );
+    if (exactCity) return exactCity;
+  }
+
+  if (normalizedRegion) {
+    const exactRegion = options.find((option) => !option.city && normalize(option.region) === normalizedRegion);
+    if (exactRegion) return exactRegion;
+  }
+
+  if (normalizedCity) {
+    return options.find((option) => option.city && normalize(option.city) === normalizedCity)
+      || options.find((option) => !option.city && normalize(option.region) === normalizedCity)
+      || null;
+  }
+
+  return null;
+}
+
+function localizeIpLocationPart(value) {
+  const key = normalize(value);
+  return IP_LOCATION_ALIASES[key] || value || "";
+}
+
+function locationScoreForOrg(org, location = getLocationContext()) {
+  if (!location.tokens.length) return 0;
+  let score = scoreText(location.tokens, [org.region, org.city, org.address]);
+  if (location.region && normalize(org.region) === normalize(location.region)) score += 35;
+  if (location.city && normalize(org.city) === normalize(location.city)) score += 30;
+  if (org.region === "Федеральный уровень") score += 2;
+  return score;
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 function normalize(value) {
   // Нормализация делает поиск терпимым к регистру, "ё/е" и лишней пунктуации.
   return String(value || "")
     .toLowerCase()
     .replaceAll("ё", "е")
-    .replace(/[«»“”.,!?()№]/g, " ")
+    .replace(/[«»“”.,!?()№:;\/-]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -645,6 +921,7 @@ function byPopularity(a, b) {
 function getVisibleOrganizations(serviceId = null) {
   // Фильтр соблюдает выбранный режим: МФЦ, ведомства или смешанная помощь без жёсткого ограничения.
   const mode = getSearchMode();
+  const location = getLocationContext();
   return organizations
     .filter((org) => {
       if (mode === "mfc" && org.type !== "mfc") return false;
@@ -652,7 +929,7 @@ function getVisibleOrganizations(serviceId = null) {
       if (serviceId && !org.services.includes(serviceId)) return false;
       return true;
     })
-    .sort(byPopularity);
+    .sort((a, b) => locationScoreForOrg(b, location) - locationScoreForOrg(a, location) || byPopularity(a, b));
 }
 
 function getVisibleServices(orgId = null) {
@@ -668,10 +945,8 @@ function getVisibleServices(orgId = null) {
 
 function buildPairs() {
   // Строим пары "услуга + организация" для поисковой выдачи, чтобы отзыв сразу был привязан корректно.
-  const query = elements.search.value;
-  const region = elements.region.value;
-  const queryTokens = tokenize(`${query} ${region}`);
-  const onlyQueryTokens = tokenize(query);
+  const queryTokens = getMainSearchTokens();
+  const location = getLocationContext();
   const mode = getSearchMode();
   const receiveType = elements.receiveType.value;
   const pairs = [];
@@ -683,8 +958,8 @@ function buildPairs() {
       if (mode === "department" && org.type !== "department") return;
 
       const serviceScore = scoreText(queryTokens, [service.title, service.category, service.code, service.synonyms]);
-      const orgScore = scoreText(queryTokens, [org.name, org.agency, org.region, org.city, org.address, org.aliases]);
-      const regionScore = scoreText(tokenize(region), [org.region, org.city, org.address]);
+      const orgScore = scoreText(queryTokens, [org.name, org.agency, org.aliases]);
+      const regionScore = locationScoreForOrg(org, location);
       let score = serviceScore + orgScore + regionScore;
 
       // Небольшие веса помогают популярным и релевантным вариантам подняться выше без жёсткой сортировки.
@@ -699,7 +974,7 @@ function buildPairs() {
 
       score += Math.round((service.popularity || 0) / 100) + Math.round((org.popularity || 0) / 100);
 
-      if (!onlyQueryTokens.length || score > 7) {
+      if (!queryTokens.length || score > 7) {
         pairs.push({ service, org, score });
       }
     });
@@ -711,11 +986,10 @@ function buildPairs() {
 }
 
 function renderBrowseTabs() {
-  // Базовый порядок вкладок переопределён в index.html: там организация идёт первой по решению сценария.
   return `
     <div class="browse-tabs" role="tablist" aria-label="Способ выбора">
-      <button class="browse-tab ${state.browseMode === "services" ? "is-active" : ""}" type="button" data-browse-tab="services">Услуги</button>
       <button class="browse-tab ${state.browseMode === "organizations" ? "is-active" : ""}" type="button" data-browse-tab="organizations">Организации</button>
+      <button class="browse-tab ${state.browseMode === "services" ? "is-active" : ""}" type="button" data-browse-tab="services">Услуги</button>
     </div>
   `;
 }
@@ -884,8 +1158,8 @@ function runSearch() {
     return;
   }
 
-  const query = elements.search.value.trim();
-  if (!query) {
+  const queryTokens = getMainSearchTokens();
+  if (!queryTokens.length) {
     if (state.browseOrgId) {
       renderOrgServices();
     } else if (state.browseServiceId) {
@@ -1170,6 +1444,10 @@ function restoreDraft() {
     state.photos = Array.isArray(saved.statePhotos) ? saved.statePhotos : [];
     elements.comment.value = saved.payload.comment || "";
     elements.video.value = saved.payload.video || "";
+    if (saved.payload.region) {
+      elements.region.value = saved.payload.region;
+      state.regionTouched = true;
+    }
     elements.serviceDate.value = saved.payload.serviceDate || elements.serviceDate.value;
     elements.stage.value = saved.payload.stage || "service_received";
     elements.receiveType.value = saved.payload.receiveType || "offline";
@@ -1185,13 +1463,14 @@ function resetForm() {
   // Полный сброс возвращает форму к начальному сценарию и очищает локальный черновик.
   state.selectedServiceId = null;
   state.selectedOrgId = null;
-  state.browseMode = "services";
+  state.browseMode = "organizations";
   state.browseOrgId = null;
   state.browseServiceId = null;
   state.ratings = Object.fromEntries(questions.map((item) => [item.id, 0]));
   state.photos = [];
   elements.form.reset();
-  elements.region.value = "Оренбургская область";
+  elements.region.value = DEFAULT_REGION;
+  state.regionTouched = false;
   elements.receiveType.value = "offline";
   configureDateInput();
   elements.stage.value = "service_received";
@@ -1232,6 +1511,7 @@ function buildPayload(status) {
     createdAt: new Date().toISOString(),
     stage: elements.stage.value,
     receiveType: elements.receiveType.value,
+    region: elements.region.value,
     serviceDate: elements.serviceDate.value,
     service: service ? { id: service.id, title: service.title, code: service.code, category: service.category } : null,
     organization: org ? { id: org.id, type: org.type, name: org.name, agency: org.agency, region: org.region, city: org.city, address: org.address } : null,
@@ -1277,17 +1557,65 @@ function updateCommentCounter() {
   elements.commentCounter.textContent = elements.comment.value.length;
 }
 
-function tryDetectRegion({ silent }) {
-  // Автозаполнение региона использует только данные браузера и не блокирует ручное редактирование.
+async function tryDetectRegion({ silent } = {}) {
+  if (!canAutofillRegion()) return;
+
+  const detectedByIp = await detectLocationByIp();
+  if (detectedByIp && canAutofillRegion()) {
+    setDetectedLocation(detectedByIp, "ip", silent);
+    return;
+  }
+
   const detectedByBrowser = detectRegionByBrowserInfo();
-  const nextRegion = detectedByBrowser || elements.region.value || "Оренбургская область";
-  elements.region.value = nextRegion;
-  if (elements.regionHint) elements.regionHint.hidden = true;
+  const browserLocation = detectedByBrowser ? findLocationByValue(detectedByBrowser) : null;
+  if (browserLocation && canAutofillRegion()) setDetectedLocation(browserLocation, "browser", silent);
+}
+
+function canAutofillRegion() {
+  const value = elements.region.value.trim();
+  return !state.regionTouched && (!value || normalize(value) === normalize(DEFAULT_REGION));
+}
+
+function setDetectedLocation(location, source, silent) {
+  elements.region.value = location.value;
+  if (elements.regionHint) {
+    elements.regionHint.textContent = source === "ip"
+      ? "Подставили по IP. Можно изменить вручную."
+      : "Подставили по данным браузера. Можно изменить вручную.";
+    elements.regionHint.hidden = false;
+  }
+  if (!silent) showToast("Регион подставлен автоматически");
   runSearch();
 }
 
+async function detectLocationByIp() {
+  if (!window.fetch || !window.AbortController) return null;
+
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), 1800);
+
+  try {
+    const response = await fetch(IP_GEOLOCATION_URL, { signal: controller.signal, cache: "no-store" });
+    if (!response.ok) return null;
+    const data = await response.json();
+    if (data.success === false || data.country_code !== "RU") return null;
+
+    const region = data.region || data.regionName || data.region_name || "";
+    const city = data.city || "";
+    const match = findLocationByParts(city, region);
+    if (match) return match;
+
+    const detectedRegion = detectRegionByCoordinates(Number(data.latitude), Number(data.longitude));
+    return detectedRegion ? findLocationByValue(detectedRegion) : null;
+  } catch (error) {
+    return null;
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
+
 function detectRegionByBrowserInfo() {
-  // По часовому поясу можно сделать только грубую подсказку; IP-геолокации в статическом прототипе нет.
+  // По часовому поясу можно сделать только грубую подсказку, если IP-сервис недоступен.
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
   const map = {
     "Asia/Yekaterinburg": "Оренбургская область",

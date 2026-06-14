@@ -47,7 +47,7 @@
         <div class="card__head">
           <div>
             <h2 id="searchTitle">1. Найдите услугу и организацию</h2>
-            <p>Можно вводить обычные слова: «паспорт», «права», «Росреестр», «МФЦ Тоцкое», адрес или ведомство.</p>
+            <p>В регионе выберите локацию, ниже ищите услугу или организацию: «паспорт», «права», «Росреестр», «МФЦ».</p>
           </div>
           
         </div>
@@ -80,7 +80,8 @@
           </label>
           <label class="field field--region">
             <span>Регион</span>
-            <input id="regionInput" value="Оренбургская область" autocomplete="off" />
+            <input id="regionInput" list="regionSuggestions" value="Оренбургская область" autocomplete="off" placeholder="Регион или город: Оренбург, Москва, Казань" />
+            <datalist id="regionSuggestions"></datalist>
             <small id="regionHint" class="field-hint" hidden></small>
           </label>
         </div>
@@ -90,27 +91,24 @@
           <label for="mainSearch">Поиск</label>
           <div class="search-input-wrap">
             <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m16.5 16.5 4 4"/></svg>
-            <input id="mainSearch" list="searchSuggestions" autocomplete="off" placeholder="Город, организация или услуга: Оренбург МФЦ, паспорт, ЕГРН" />
+            <input id="mainSearch" list="searchSuggestions" autocomplete="off" placeholder="Организация или услуга: МФЦ, паспорт, ЕГРН, Росреестр" />
             <button id="clearSearch" type="button" aria-label="Очистить поиск">×</button>
           </div>
           <datalist id="searchSuggestions">
-            <option value="Оренбург МФЦ"></option>
-            <option value="Орск МФЦ"></option>
-            <option value="Бузулук МФЦ"></option>
-            <option value="Новотроицк МФЦ"></option>
-            <option value="Соль-Илецк МФЦ"></option>
-            <option value="Тоцкое МФЦ"></option>
-            <option value="Оренбург паспорт"></option>
-            <option value="Оренбург Росреестр ЕГРН"></option>
-            <option value="Оренбург СФР пособие"></option>
-            <option value="Оренбург ГИБДД права"></option>
+            <option value="МФЦ"></option>
+            <option value="паспорт МВД"></option>
+            <option value="Росреестр ЕГРН"></option>
+            <option value="СФР пособие"></option>
+            <option value="ГИБДД права"></option>
+            <option value="ФНС ИНН"></option>
+            <option value="ЗАГС рождение"></option>
           </datalist>
         </div>
 
         <div class="quick-tags-wrap" aria-label="Быстрые примеры поиска">
           <span class="quick-tags__title">Часто ищут</span>
           <div class="quick-tags">
-            <button type="button" data-query="МФЦ Тоцкое выписка">МФЦ Тоцкое</button>
+            <button type="button" data-query="МФЦ">МФЦ</button>
             <button type="button" data-query="паспорт МВД">паспорт</button>
             <button type="button" data-query="ЕГРН Росреестр">ЕГРН</button>
             <button type="button" data-query="пособие СФР">пособие</button>

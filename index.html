@@ -8,8 +8,9 @@
   <title>Ваш Контроль — форма отзыва</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="theme-gosuslugi.css" />
 </head>
-<body>
+<body class="theme-classic">
   <header class="topbar">
     <div class="topbar__inner">
       <a class="brand" href="#" aria-label="Ваш Контроль">
@@ -24,8 +25,13 @@
         <span><b>Вы вошли через Госуслуги</b><small>Личность подтверждена</small></span>
       </div>
 
-
-      <button class="menu-btn" type="button" aria-label="Открыть меню"><span></span><span></span><span></span></button>
+      <div class="topbar__tools">
+        <div class="theme-switcher" aria-label="Цветовая тема">
+          <button class="is-active" type="button" data-theme-option="classic" aria-pressed="true">Классическая</button>
+          <button type="button" data-theme-option="official" aria-pressed="false">Официальная</button>
+        </div>
+        <button class="menu-btn" type="button" aria-label="Открыть меню"><span></span><span></span><span></span></button>
+      </div>
     </div>
   </header>
 

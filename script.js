@@ -1,6 +1,6 @@
 const DEFAULT_REGION_TITLE = "";
-const IP_GEOLOCATION_URL = "https://ipwho.is/?lang=ru";
 const DRAFT_KEY = "vashkontrol-review-draft-practical";
+const COLOR_THEME_KEY = "vashkontrol-color-theme";
 const RESULTS_LIMIT = 5;
 
 const catalog = {
@@ -9,7 +9,7 @@ const catalog = {
   organizations: []
 };
 
-// Обязательные параметры оценки: текст и шкалу нельзя менять без согласования продукта и юристов.
+// Обязательные параметры оценки.
 const questions = [
   { id: "serviceTime", text: "Время предоставления государственной услуги", icon: "clock" },
   { id: "queueTime", text: "Время ожидания в очереди при получении услуги", icon: "queue" },
@@ -47,30 +47,6 @@ const quickTagsByTab = {
     mfc: ["паспорт", "ЕГРН", "ИНН", "СНИЛС", "пособие"],
     department: ["Росреестр", "МВД", "СФР", "ФНС", "ЗАГС"]
   }
-};
-
-const IP_LOCATION_ALIASES = {
-  moscow: "Москва",
-  moskva: "Москва",
-  "moscow oblast": "Московская область",
-  "moskovskaya oblast": "Московская область",
-  "saint petersburg": "Санкт-Петербург",
-  "st petersburg": "Санкт-Петербург",
-  "sankt peterburg": "Санкт-Петербург",
-  orenburg: "Оренбург",
-  "orenburg oblast": "Оренбургская область",
-  samara: "Самара",
-  "samara oblast": "Самарская область",
-  kazan: "Казань",
-  tatarstan: "Республика Татарстан",
-  "republic of tatarstan": "Республика Татарстан",
-  novosibirsk: "Новосибирск",
-  "novosibirsk oblast": "Новосибирская область",
-  yekaterinburg: "Екатеринбург",
-  "sverdlovsk oblast": "Свердловская область",
-  "nizhny novgorod": "Нижний Новгород",
-  krasnodar: "Краснодар",
-  "krasnodar krai": "Краснодарский край"
 };
 
 const state = {
@@ -143,12 +119,14 @@ const elements = {
   resultDialog: $("#resultDialog"),
   payload: $("#payload"),
   catalogDialog: $("#catalogDialog"),
-  toast: $("#toast")
+  toast: $("#toast"),
+  themeButtons: $$("[data-theme-option]")
 };
 
 init();
 
 async function init() {
+  applyColorTheme(getStoredColorTheme());
   configureDateInput();
   renderRatings();
   renderQuickTags();
@@ -190,7 +168,33 @@ async function loadCatalogs() {
   catalog.organizations = await organizationsResponse.json();
 }
 
+function getStoredColorTheme() {
+  const savedTheme = localStorage.getItem(COLOR_THEME_KEY);
+  return ["classic", "official"].includes(savedTheme) ? savedTheme : "classic";
+}
+
+function setColorTheme(theme) {
+  if (!["classic", "official"].includes(theme)) return;
+  localStorage.setItem(COLOR_THEME_KEY, theme);
+  applyColorTheme(theme);
+}
+
+function applyColorTheme(theme) {
+  const official = theme === "official";
+  document.body.classList.toggle("theme-official", official);
+  document.body.classList.toggle("theme-classic", !official);
+  elements.themeButtons.forEach((button) => {
+    const active = button.dataset.themeOption === theme;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
+}
+
 function bindEvents() {
+  elements.themeButtons.forEach((button) => {
+    button.addEventListener("click", () => setColorTheme(button.dataset.themeOption));
+  });
+
   elements.search.addEventListener("input", () => {
     state.searchScrollX = window.scrollX;
     state.searchScrollY = window.scrollY;
@@ -770,36 +774,6 @@ function findRegionByValue(value) {
     || catalog.regions.find((region) => normalize(region.city) === normalized)
     || catalog.regions.find((region) => normalize(region.region) === normalized)
     || null;
-}
-
-function findRegionByParts(city, region) {
-  const normalizedCity = normalize(localizeIpLocationPart(city));
-  const normalizedRegion = normalize(localizeIpLocationPart(region));
-
-  if (normalizedCity && normalizedRegion) {
-    const exactCity = catalog.regions.find((item) =>
-      item.city && normalize(item.city) === normalizedCity && normalize(item.region) === normalizedRegion
-    );
-    if (exactCity) return exactCity;
-  }
-
-  if (normalizedRegion) {
-    const exactRegion = catalog.regions.find((item) => item.type === "region" && normalize(item.region) === normalizedRegion);
-    if (exactRegion) return exactRegion;
-  }
-
-  if (normalizedCity) {
-    return catalog.regions.find((item) => item.city && normalize(item.city) === normalizedCity)
-      || catalog.regions.find((item) => item.type === "region" && normalize(item.region) === normalizedCity)
-      || null;
-  }
-
-  return null;
-}
-
-function localizeIpLocationPart(value) {
-  const key = normalize(value);
-  return IP_LOCATION_ALIASES[key] || value || "";
 }
 
 function isFederalOrganization(org) {
@@ -1611,12 +1585,7 @@ function updateCommentCounter() {
 async function tryDetectRegion({ silent } = {}) {
   if (!canAutofillRegion()) return;
 
-  const detectedByIp = await detectLocationByIp();
-  if (detectedByIp && canAutofillRegion()) {
-    setDetectedRegion(detectedByIp, "ip", silent);
-    return;
-  }
-
+  // Прототип не дергает внешние IP-сервисы: только безопасная подсказка по timezone браузера.
   const detectedByBrowser = detectRegionByBrowserInfo();
   const browserRegion = detectedByBrowser ? findRegionByValue(detectedByBrowser) : null;
   if (browserRegion && canAutofillRegion()) setDetectedRegion(browserRegion, "browser", silent);
@@ -1634,32 +1603,6 @@ function setDetectedRegion(region, source, silent) {
   runSearch();
 }
 
-async function detectLocationByIp() {
-  if (!window.fetch || !window.AbortController) return null;
-
-  const controller = new AbortController();
-  const timer = window.setTimeout(() => controller.abort(), 1800);
-
-  try {
-    const response = await fetch(IP_GEOLOCATION_URL, { signal: controller.signal, cache: "no-store" });
-    if (!response.ok) return null;
-    const data = await response.json();
-    if (data.success === false || data.country_code !== "RU") return null;
-
-    const region = data.region || data.regionName || data.region_name || "";
-    const city = data.city || "";
-    const match = findRegionByParts(city, region);
-    if (match) return match;
-
-    const detectedRegion = detectRegionByCoordinates(Number(data.latitude), Number(data.longitude));
-    return detectedRegion ? findRegionByValue(detectedRegion) : null;
-  } catch (error) {
-    return null;
-  } finally {
-    window.clearTimeout(timer);
-  }
-}
-
 function detectRegionByBrowserInfo() {
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
   const map = {
@@ -1672,18 +1615,6 @@ function detectRegionByBrowserInfo() {
     "Asia/Vladivostok": "Приморский край"
   };
   return map[timezone] || "";
-}
-
-function detectRegionByCoordinates(lat, lon) {
-  const boxes = [
-    { region: "Оренбургская область", minLat: 50.4, maxLat: 54.0, minLon: 50.7, maxLon: 61.7 },
-    { region: "Москва", minLat: 55.1, maxLat: 56.1, minLon: 36.8, maxLon: 38.3 },
-    { region: "Московская область", minLat: 54.2, maxLat: 56.9, minLon: 35.1, maxLon: 40.3 },
-    { region: "Самарская область", minLat: 51.7, maxLat: 54.7, minLon: 47.9, maxLon: 52.7 },
-    { region: "Республика Татарстан", minLat: 53.9, maxLat: 56.9, minLon: 47.2, maxLon: 54.3 },
-    { region: "Санкт-Петербург", minLat: 59.6, maxLat: 60.3, minLon: 29.4, maxLon: 30.8 }
-  ];
-  return boxes.find((box) => lat >= box.minLat && lat <= box.maxLat && lon >= box.minLon && lon <= box.maxLon)?.region || "";
 }
 
 function isValidUrl(value) {

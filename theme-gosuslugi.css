@@ -1,0 +1,103 @@
+body.theme-official {
+  --primary: #0d4cd3;
+  --primary-dark: #073b9f;
+  --primary-soft: #eef5ff;
+  --primary-soft-2: #f6faff;
+  --primary-line: #c9daf8;
+  --accent-red: #ee3f58;
+  --accent-red-dark: #c5283f;
+  --accent-red-soft: #fff0f3;
+  --success: #2e8b57;
+  --success-dark: #1d6b41;
+  --success-soft: #edf8f1;
+
+  --green: var(--primary);
+  --green-dark: var(--primary-dark);
+  --green-soft: var(--primary-soft);
+  --green-soft-2: var(--primary-soft-2);
+  --text: #17233d;
+  --muted: #667085;
+  --line: #dbe4f3;
+  --line-strong: #c7d4e8;
+  --bg: #f4f7fb;
+  --card: #ffffff;
+  --danger: var(--accent-red-dark);
+  --shadow: 0 12px 32px rgba(13, 76, 211, 0.07);
+}
+
+body.theme-official .brand__icon { color: var(--primary); }
+body.theme-official .brand__name { color: var(--text); }
+body.theme-official .brand__name b { color: var(--accent-red); }
+
+body.theme-official .auth-pill {
+  border-color: var(--primary-line);
+  box-shadow: 0 4px 16px rgba(13, 76, 211, 0.06);
+}
+
+body.theme-official .auth-pill small {
+  color: var(--success-dark);
+}
+
+body.theme-official .gos-logo {
+  position: relative;
+  border-color: var(--primary-line);
+  color: var(--primary);
+}
+
+body.theme-official .gos-logo::after {
+  content: "";
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  width: 14px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--accent-red);
+}
+
+body.theme-official .search-card {
+  border-top: 3px solid var(--primary);
+}
+
+body.theme-official .tag--green {
+  background: var(--primary-soft);
+  color: var(--primary-dark);
+}
+
+body.theme-official .selected-box {
+  background: var(--primary-soft-2);
+  border-color: var(--primary-line);
+}
+
+body.theme-official .selected-box__badge--org {
+  background: var(--accent-red-soft);
+  color: var(--accent-red-dark);
+}
+
+body.theme-official .notice-card {
+  background: linear-gradient(135deg, #f5f9ff 0%, #fff7f9 100%);
+  border-color: var(--primary-line);
+}
+
+body.theme-official .notice-card p,
+body.theme-official .moderation {
+  color: #46536b;
+}
+
+body.theme-official .moderation svg {
+  color: var(--success-dark);
+}
+
+body.theme-official .dialog__icon {
+  background: var(--success-dark);
+  color: #fff;
+}
+
+body.theme-official .step.is-done::after {
+  border-color: var(--success-dark);
+  background: var(--success-dark);
+}
+
+body.theme-official .toast {
+  background: var(--success-dark);
+}

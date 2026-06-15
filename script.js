@@ -454,6 +454,7 @@ function handleSearchKeydown(event) {
   if (event.key !== "Enter" || event.isComposing) return;
   const scrollX = state.searchScrollX || window.scrollX;
   const scrollY = state.searchScrollY || window.scrollY;
+  // Mobile keyboards submit forms on Enter; keep search in-place instead of jumping to validation.
   event.preventDefault();
   event.stopPropagation();
   state.pendingOrgId = null;
@@ -549,6 +550,7 @@ function syncLocationFields(region) {
     return;
   }
 
+  // Desktop has a separate city field; mobile keeps city selection in the region combobox.
   if (region.type === "city") {
     elements.region.value = isCityFieldVisible() ? region.region : region.title;
     elements.city.value = region.city || region.title;

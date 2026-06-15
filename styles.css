@@ -1119,6 +1119,11 @@ pre {
   .search-input-wrap { grid-template-columns: 22px 1fr 30px; }
   .result-row {
     grid-template-columns: 1fr;
+    min-height: 64px;
+    padding: 12px;
+  }
+  /* Organization cards reserve space for wrapped meta and tags; service cards stay compact. */
+  .result-row--org {
     min-height: 128px;
     padding: 14px 12px 24px;
   }

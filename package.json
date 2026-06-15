@@ -1,0 +1,5 @@
+{
+  "scripts": {
+    "test": "node --check script.js && node tests/static.test.js"
+  }
+}

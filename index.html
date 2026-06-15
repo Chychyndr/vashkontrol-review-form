@@ -55,9 +55,9 @@
         </div>
 
         <div class="controls-row" aria-label="Тип поиска">
-          <label class="segmented"><input type="radio" name="searchMode" value="any" checked><span>Не знаю, помогите выбрать</span></label>
-          <label class="segmented"><input type="radio" name="searchMode" value="mfc"><span>Получал в МФЦ</span></label>
+          <label class="segmented"><input type="radio" name="searchMode" value="mfc" checked><span>Получал в МФЦ</span></label>
           <label class="segmented"><input type="radio" name="searchMode" value="department"><span>Получал в ведомстве</span></label>
+          <label class="segmented segmented--fallback"><input type="radio" name="searchMode" value="any"><span>Не знаю, помогите выбрать</span></label>
         </div>
 
         <div class="meta-grid">
@@ -95,12 +95,30 @@
                 role="combobox"
                 aria-expanded="false"
                 aria-controls="regionDropdown"
+                aria-describedby="regionHint"
               />
               <button id="clearRegion" type="button" aria-label="Очистить регион">×</button>
             </div>
             <div id="regionDropdown" class="combo-dropdown" hidden></div>
-            <small id="regionHint" class="field-hint" hidden></small>
           </label>
+          <label class="field field--city city-combobox">
+            <span>Город</span>
+            <div class="combo">
+              <input
+                id="cityInput"
+                autocomplete="off"
+                placeholder="Город: Оренбург, Орск"
+                role="combobox"
+                aria-expanded="false"
+                aria-controls="cityDropdown"
+              />
+              <button id="clearCity" type="button" aria-label="Очистить город">×</button>
+            </div>
+            <div id="cityDropdown" class="combo-dropdown" hidden></div>
+          </label>
+          <div class="region-hint-cell">
+            <small id="regionHint" class="field-hint" hidden></small>
+          </div>
         </div>
         <p class="error" id="dateError" hidden>Проверьте дату получения услуги.</p>
 

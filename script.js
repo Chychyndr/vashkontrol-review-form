@@ -85,11 +85,15 @@ const state = {
   openHelpId: null,
   regionHighlightIndex: -1,
   regionMatches: [],
+  cityHighlightIndex: -1,
+  cityMatches: [],
   regionTouched: false,
   serviceDate: "",
   dateMin: "",
   dateMax: "",
   datePickerMonth: null,
+  searchScrollX: 0,
+  searchScrollY: 0,
   catalogsReady: false
 };
 
@@ -107,6 +111,9 @@ const elements = {
   clearRegion: $("#clearRegion"),
   regionDropdown: $("#regionDropdown"),
   regionHint: $("#regionHint"),
+  city: $("#cityInput"),
+  clearCity: $("#clearCity"),
+  cityDropdown: $("#cityDropdown"),
   receiveType: $("#receiveType"),
   serviceDate: $("#serviceDate"),
   serviceDateButton: $("#serviceDateButton"),
@@ -159,6 +166,7 @@ async function init() {
 
   restoreDraft();
   if (!state.selectedRegion) tryDetectRegion({ silent: true });
+  updateRegionHint();
   runSearch();
   updateSelectedBox();
   updateSteps();
@@ -184,10 +192,13 @@ async function loadCatalogs() {
 
 function bindEvents() {
   elements.search.addEventListener("input", () => {
+    state.searchScrollX = window.scrollX;
+    state.searchScrollY = window.scrollY;
     state.pendingOrgId = null;
     state.pendingServiceId = null;
     runSearch();
   });
+  elements.search.addEventListener("keydown", handleSearchKeydown);
 
   elements.clearSearch.addEventListener("click", () => {
     elements.search.value = "";
@@ -218,6 +229,8 @@ function bindEvents() {
     state.selectedRegion = null;
     state.pendingOrgId = null;
     state.pendingServiceId = null;
+    elements.city.value = "";
+    closeCityDropdown();
     renderRegionDropdown(elements.region.value);
     updateRegionHint();
     runSearch();
@@ -238,10 +251,44 @@ function bindEvents() {
     state.pendingOrgId = null;
     state.pendingServiceId = null;
     elements.region.value = "";
+    elements.city.value = "";
     closeRegionDropdown();
+    closeCityDropdown();
     updateRegionHint();
     runSearch();
     elements.region.focus();
+  });
+
+  elements.city.addEventListener("input", () => {
+    state.regionTouched = true;
+    state.pendingOrgId = null;
+    state.pendingServiceId = null;
+    if (state.selectedRegion?.type === "city") state.selectedRegion = getSelectedBaseRegion();
+    renderCityDropdown(elements.city.value);
+    updateRegionHint();
+    runSearch();
+  });
+
+  elements.city.addEventListener("focus", () => renderCityDropdown(elements.city.value));
+  elements.city.addEventListener("keydown", handleCityKeydown);
+  elements.cityDropdown.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-city-id]");
+    if (!button) return;
+    const city = findRegionById(button.dataset.cityId);
+    if (city) selectCity(city);
+  });
+
+  elements.clearCity.addEventListener("click", () => {
+    state.regionTouched = true;
+    state.pendingOrgId = null;
+    state.pendingServiceId = null;
+    if (state.selectedRegion?.type === "city") state.selectedRegion = getSelectedBaseRegion();
+    elements.city.value = "";
+    closeCityDropdown();
+    updateRegionHint();
+    dropUnavailableSelection();
+    runSearch();
+    elements.city.focus();
   });
 
   elements.receiveType.addEventListener("change", () => {
@@ -252,8 +299,15 @@ function bindEvents() {
 
   elements.serviceDateButton.addEventListener("click", () => toggleDatePicker());
   elements.datePicker.addEventListener("click", handleDatePickerClick);
+  elements.datePicker.addEventListener("keydown", handleDatePickerKeydown);
 
   elements.serviceDateButton.addEventListener("keydown", (event) => {
+    if (["ArrowLeft", "ArrowRight"].includes(event.key)) {
+      event.preventDefault();
+      if (elements.datePicker.hidden) openDatePicker();
+      changeDatePickerMonth(event.key === "ArrowLeft" ? -1 : 1);
+      return;
+    }
     if (event.key === "Escape") closeDatePicker();
   });
 
@@ -266,6 +320,7 @@ function bindEvents() {
 
   document.addEventListener("click", (event) => {
     if (!event.target.closest(".region-combobox")) closeRegionDropdown();
+    if (!event.target.closest(".city-combobox")) closeCityDropdown();
     if (!event.target.closest(".field--date")) closeDatePicker();
   });
 
@@ -395,6 +450,25 @@ function getItemTitle(item) {
   return item.name || item.title || "";
 }
 
+function handleSearchKeydown(event) {
+  if (event.key !== "Enter" || event.isComposing) return;
+  const scrollX = state.searchScrollX || window.scrollX;
+  const scrollY = state.searchScrollY || window.scrollY;
+  event.preventDefault();
+  event.stopPropagation();
+  state.pendingOrgId = null;
+  state.pendingServiceId = null;
+  runSearch();
+  elements.results.querySelector(".browse-list")?.scrollTo(0, 0);
+  restoreScrollPosition(scrollX, scrollY);
+}
+
+function restoreScrollPosition(scrollX, scrollY) {
+  const restore = () => window.scrollTo(scrollX, scrollY);
+  window.requestAnimationFrame(restore);
+  window.setTimeout(restore, 80);
+}
+
 function setSearchTab(tab) {
   if (!["organizations", "services"].includes(tab) || state.searchTab === tab) return;
   state.searchTab = tab;
@@ -454,6 +528,37 @@ function scoreRegion(region, query) {
   return -1;
 }
 
+function isCityFieldVisible() {
+  return Boolean(elements.city) && window.matchMedia("(min-width: 901px)").matches;
+}
+
+function getRegionOnlyItem(region) {
+  if (!region?.region) return null;
+  const normalizedRegion = normalize(region.region);
+  return catalog.regions.find((item) => item.type === "region" && normalize(item.region) === normalizedRegion) || null;
+}
+
+function getSelectedBaseRegion() {
+  return getRegionOnlyItem(state.selectedRegion);
+}
+
+function syncLocationFields(region) {
+  if (!region) {
+    elements.region.value = DEFAULT_REGION_TITLE;
+    elements.city.value = "";
+    return;
+  }
+
+  if (region.type === "city") {
+    elements.region.value = isCityFieldVisible() ? region.region : region.title;
+    elements.city.value = region.city || region.title;
+    return;
+  }
+
+  elements.region.value = region.title;
+  elements.city.value = "";
+}
+
 function renderRegionDropdown(query) {
   if (!state.catalogsReady) return;
   state.regionMatches = getRegionMatches(query);
@@ -480,6 +585,62 @@ function getRegionMeta(region) {
   return "Регион России";
 }
 
+function getCitySearchRegion() {
+  if (state.selectedRegion?.region) return state.selectedRegion;
+  return findRegionByValue(elements.region.value);
+}
+
+function getCityMatches(query) {
+  const normalizedQuery = normalize(query);
+  const selectedRegion = getCitySearchRegion();
+  const normalizedSelectedRegion = selectedRegion?.region ? normalize(selectedRegion.region) : "";
+
+  return catalog.regions
+    .filter((region) => region.type === "city")
+    .filter((region) => !normalizedSelectedRegion || normalize(region.region) === normalizedSelectedRegion)
+    .map((region) => ({ region, score: scoreCity(region, normalizedQuery) }))
+    .filter((item) => item.score >= 0)
+    .sort((a, b) => b.score - a.score || byPopularity(a.region, b.region))
+    .slice(0, 10)
+    .map((item) => item.region);
+}
+
+function scoreCity(region, query) {
+  if (!query) return region.popularity || 0;
+  const title = normalize(region.title);
+  const city = normalize(region.city);
+  const regionTitle = normalize(region.region);
+  const aliases = (region.aliases || []).map(normalize);
+
+  if (title === query || city === query) return 100000 + (region.popularity || 0);
+  if (title.startsWith(query) || city.startsWith(query)) return 90000 + (region.popularity || 0);
+  if (aliases.some((alias) => alias.startsWith(query))) return 80000 + (region.popularity || 0);
+  if (title.includes(query) || city.includes(query)) return 70000 + (region.popularity || 0);
+  if (aliases.some((alias) => alias.includes(query))) return 60000 + (region.popularity || 0);
+  if (regionTitle.includes(query)) return 50000 + (region.popularity || 0);
+  return -1;
+}
+
+function renderCityDropdown(query) {
+  if (!state.catalogsReady) return;
+  state.cityMatches = getCityMatches(query);
+  state.cityHighlightIndex = state.cityMatches.length ? 0 : -1;
+
+  if (!state.cityMatches.length) {
+    elements.cityDropdown.innerHTML = `<div class="combo-empty">Город не найден</div>`;
+  } else {
+    elements.cityDropdown.innerHTML = state.cityMatches.map((city, index) => `
+      <button class="combo-option ${index === state.cityHighlightIndex ? "is-active" : ""}" type="button" data-city-id="${city.id}">
+        <strong>${escapeHtml(city.title)}</strong>
+        <small>${escapeHtml(city.region)}</small>
+      </button>
+    `).join("");
+  }
+
+  elements.cityDropdown.hidden = false;
+  elements.city.setAttribute("aria-expanded", "true");
+}
+
 function handleRegionKeydown(event) {
   if (event.key === "ArrowDown") {
     event.preventDefault();
@@ -499,6 +660,25 @@ function handleRegionKeydown(event) {
   if (event.key === "Escape") closeRegionDropdown();
 }
 
+function handleCityKeydown(event) {
+  if (event.key === "ArrowDown") {
+    event.preventDefault();
+    if (elements.cityDropdown.hidden) renderCityDropdown(elements.city.value);
+    moveCityHighlight(1);
+  }
+  if (event.key === "ArrowUp") {
+    event.preventDefault();
+    if (elements.cityDropdown.hidden) renderCityDropdown(elements.city.value);
+    moveCityHighlight(-1);
+  }
+  if (event.key === "Enter" && !elements.cityDropdown.hidden) {
+    event.preventDefault();
+    const city = state.cityMatches[state.cityHighlightIndex];
+    if (city) selectCity(city);
+  }
+  if (event.key === "Escape") closeCityDropdown();
+}
+
 function moveRegionHighlight(delta) {
   if (!state.regionMatches.length) return;
   state.regionHighlightIndex = (state.regionHighlightIndex + delta + state.regionMatches.length) % state.regionMatches.length;
@@ -511,13 +691,39 @@ function renderRegionHighlight() {
   });
 }
 
+function moveCityHighlight(delta) {
+  if (!state.cityMatches.length) return;
+  state.cityHighlightIndex = (state.cityHighlightIndex + delta + state.cityMatches.length) % state.cityMatches.length;
+  renderCityHighlight();
+}
+
+function renderCityHighlight() {
+  elements.cityDropdown.querySelectorAll(".combo-option").forEach((button, index) => {
+    button.classList.toggle("is-active", index === state.cityHighlightIndex);
+  });
+}
+
 function selectRegion(region) {
   state.selectedRegion = region;
   state.regionTouched = true;
   state.pendingOrgId = null;
   state.pendingServiceId = null;
-  elements.region.value = region.title;
+  syncLocationFields(region);
   closeRegionDropdown();
+  closeCityDropdown();
+  updateRegionHint();
+  dropUnavailableSelection();
+  runSearch();
+}
+
+function selectCity(city) {
+  state.selectedRegion = city;
+  state.regionTouched = true;
+  state.pendingOrgId = null;
+  state.pendingServiceId = null;
+  elements.region.value = city.region;
+  elements.city.value = city.city || city.title;
+  closeCityDropdown();
   updateRegionHint();
   dropUnavailableSelection();
   runSearch();
@@ -528,10 +734,27 @@ function closeRegionDropdown() {
   elements.region.setAttribute("aria-expanded", "false");
 }
 
+function closeCityDropdown() {
+  elements.cityDropdown.hidden = true;
+  elements.city.setAttribute("aria-expanded", "false");
+}
+
 function updateRegionHint() {
   const needsChoice = elements.region.value.trim() && !state.selectedRegion;
-  elements.regionHint.textContent = needsChoice ? "Нажмите вариант в списке." : "";
-  elements.regionHint.hidden = !needsChoice;
+  if (needsChoice) {
+    elements.regionHint.textContent = "Нажмите вариант в списке.";
+  } else if (isCityFieldVisible()) {
+    elements.regionHint.textContent = state.selectedRegion?.type === "city"
+      ? "Город выбран. Можно изменить регион или город."
+      : state.selectedRegion?.type === "region"
+        ? "Укажите город, чтобы сузить список организаций."
+        : "Сначала выберите регион. Город уточнит выдачу организаций.";
+  } else if (state.selectedRegion?.type === "city") {
+    elements.regionHint.textContent = "Город выбран. Чтобы изменить, нажмите поле ещё раз.";
+  } else {
+    elements.regionHint.textContent = "Введите регион или город. После региона нажмите поле ещё раз, чтобы выбрать город.";
+  }
+  elements.regionHint.hidden = false;
 }
 
 function findRegionById(id) {
@@ -951,7 +1174,7 @@ function toggleDatePicker() {
 }
 
 function openDatePicker() {
-  state.datePickerMonth = startOfMonth(parseIsoDate(state.serviceDate));
+  state.datePickerMonth = clampDatePickerMonth(startOfMonth(parseIsoDate(state.serviceDate)));
   renderDatePicker();
   elements.datePicker.hidden = false;
   elements.serviceDateButton.setAttribute("aria-expanded", "true");
@@ -967,8 +1190,8 @@ function renderDatePicker() {
   const monthLabel = new Intl.DateTimeFormat("ru-RU", { month: "long", year: "numeric" }).format(month);
   const minMonth = startOfMonth(parseIsoDate(state.dateMin));
   const maxMonth = startOfMonth(parseIsoDate(state.dateMax));
-  const canPrev = month > minMonth;
-  const canNext = month < maxMonth;
+  const canPrev = getMonthTime(month) > getMonthTime(minMonth);
+  const canNext = getMonthTime(month) < getMonthTime(maxMonth);
 
   elements.datePicker.innerHTML = `
     <div class="date-picker__head">
@@ -1009,10 +1232,12 @@ function renderDateDays(month) {
 }
 
 function handleDatePickerClick(event) {
+  event.preventDefault();
+  event.stopPropagation();
+
   const monthButton = event.target.closest("[data-month]");
   if (monthButton) {
-    state.datePickerMonth = addMonths(state.datePickerMonth, Number(monthButton.dataset.month));
-    renderDatePicker();
+    changeDatePickerMonth(Number(monthButton.dataset.month));
     return;
   }
 
@@ -1020,6 +1245,30 @@ function handleDatePickerClick(event) {
   if (!dayButton || dayButton.disabled) return;
   setServiceDate(dayButton.dataset.date);
   closeDatePicker();
+}
+
+function handleDatePickerKeydown(event) {
+  if (!["ArrowLeft", "ArrowRight"].includes(event.key)) return;
+  event.preventDefault();
+  changeDatePickerMonth(event.key === "ArrowLeft" ? -1 : 1);
+}
+
+function changeDatePickerMonth(delta) {
+  const current = state.datePickerMonth || startOfMonth(parseIsoDate(state.serviceDate || state.dateMax));
+  state.datePickerMonth = clampDatePickerMonth(addMonths(current, delta));
+  renderDatePicker();
+}
+
+function clampDatePickerMonth(month) {
+  const minMonth = startOfMonth(parseIsoDate(state.dateMin));
+  const maxMonth = startOfMonth(parseIsoDate(state.dateMax));
+  if (getMonthTime(month) < getMonthTime(minMonth)) return minMonth;
+  if (getMonthTime(month) > getMonthTime(maxMonth)) return maxMonth;
+  return month;
+}
+
+function getMonthTime(date) {
+  return new Date(date.getFullYear(), date.getMonth(), 1).getTime();
 }
 
 function isDateDisabled(value) {
@@ -1101,6 +1350,7 @@ function setRating(id, value) {
 }
 
 function previewStars(row, value) {
+  row.dataset.previewRating = String(value);
   row.querySelectorAll(".star-btn").forEach((button) => {
     button.classList.toggle("is-preview", Number(button.dataset.rating) <= value);
   });
@@ -1109,6 +1359,8 @@ function previewStars(row, value) {
 function renderRatingState() {
   $$(".rating-row").forEach((row) => {
     const rating = state.ratings[row.dataset.questionId] || 0;
+    row.dataset.ratingValue = rating ? String(rating) : "";
+    delete row.dataset.previewRating;
     row.querySelectorAll(".star-btn").forEach((button) => {
       const current = Number(button.dataset.rating);
       button.classList.toggle("is-selected", current <= rating);
@@ -1223,7 +1475,7 @@ function restoreDraft() {
     state.ratings = { ...state.ratings, ...(saved.payload.ratings || {}) };
     state.photos = Array.isArray(saved.statePhotos) ? saved.statePhotos : [];
     state.selectedRegion = findRegionById(saved.payload.region?.id) || findRegionByValue(saved.payload.regionText || saved.payload.region?.title || saved.payload.region || "");
-    if (state.selectedRegion) elements.region.value = state.selectedRegion.title;
+    if (state.selectedRegion) syncLocationFields(state.selectedRegion);
     elements.comment.value = saved.payload.comment || "";
     elements.video.value = saved.payload.video || "";
     setServiceDate(saved.payload.serviceDate || state.serviceDate, { silent: true });
@@ -1248,7 +1500,7 @@ function resetForm() {
   state.ratings = Object.fromEntries(questions.map((item) => [item.id, 0]));
   state.photos = [];
   elements.form.reset();
-  elements.region.value = DEFAULT_REGION_TITLE;
+  syncLocationFields(null);
   elements.receiveType.value = "offline";
   configureDateInput();
   elements.stage.value = "service_received";
@@ -1274,6 +1526,7 @@ function sendCatalogProblem() {
     search: elements.search.value,
     region: state.selectedRegion,
     regionText: elements.region.value,
+    cityText: elements.city.value,
     createdAt: new Date().toISOString()
   });
   elements.catalogDialog.close();
@@ -1299,6 +1552,7 @@ function buildPayload(status) {
       city: state.selectedRegion.city
     } : null,
     regionText: elements.region.value.trim(),
+    cityText: elements.city.value.trim(),
     serviceDate: elements.serviceDate.value,
     service: service ? { id: service.id, title: service.title, code: service.code, category: service.category } : null,
     organization: org ? { id: org.id, type: org.type, name: org.name, agency: org.agency, region: org.region, city: org.city, address: org.address } : null,
@@ -1371,11 +1625,8 @@ function canAutofillRegion() {
 
 function setDetectedRegion(region, source, silent) {
   state.selectedRegion = region;
-  elements.region.value = region.title;
-  elements.regionHint.textContent = source === "ip"
-    ? "Регион подставлен по IP. Можно изменить."
-    : "Регион подставлен автоматически. Можно изменить.";
-  elements.regionHint.hidden = false;
+  syncLocationFields(region);
+  updateRegionHint();
   if (!silent) showToast("Регион подставлен автоматически");
   runSearch();
 }

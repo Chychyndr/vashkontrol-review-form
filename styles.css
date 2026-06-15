@@ -694,7 +694,11 @@ h1 {
   white-space: normal;
   overflow-wrap: anywhere;
 }
-.result-reviews-inline { display: none; }
+.result-reviews-inline {
+  display: none;
+  color: var(--muted);
+  line-height: 1.25;
+}
 .result-tags {
   display: flex;
   flex-wrap: wrap;
@@ -1115,14 +1119,18 @@ pre {
   .search-input-wrap { grid-template-columns: 22px 1fr 30px; }
   .result-row {
     grid-template-columns: 1fr;
-    min-height: 64px;
-    padding: 12px 12px 18px;
+    min-height: 128px;
+    padding: 14px 12px 24px;
   }
   .result-row > span { gap: 10px; }
   .result-tags { gap: 7px; }
   .tag { min-height: 24px; }
   .tag--reviews { display: none; }
-  .result-reviews-inline { display: inline; }
+  .result-reviews-inline {
+    display: block;
+    font-size: 14px;
+    font-weight: 700;
+  }
   .result-row strong { font-size: 15px; }
   .result-score { display: none; }
   .rating-question { grid-template-columns: 34px 1fr 26px; }

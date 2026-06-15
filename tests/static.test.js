@@ -31,6 +31,7 @@ expectMatch("official red accent", themeCss, /--accent-red:\s*#ee3f58;/);
 expectMatch("official success green", themeCss, /--success-dark:\s*#1d6b41;/);
 expectMatch("official success dialog icon stays green", themeCss, /body\.theme-official \.dialog__icon\s*\{[\s\S]*?background:\s*var\(--success-dark\);/);
 expectMatch("official success toast stays green", themeCss, /body\.theme-official \.toast\s*\{[\s\S]*?background:\s*var\(--success-dark\);/);
+assert.ok(!themeCss.includes(".gos-logo::after"), "official Gosuslugi logo should not draw red underline");
 
 const searchModes = [...html.matchAll(/name="searchMode" value="([^"]+)"([^>]*)>/g)].map((match) => ({
   value: match[1],

@@ -12,10 +12,14 @@ const catalog = {
 };
 
 const stageOptions = [
-  { value: "application_submitted", label: "Подача заявления (документов)" },
-  { value: "result_received", label: "Получение результата государственной услуги" },
-  { value: "refusal", label: "Отказ" },
-  { value: "suspension", label: "Приостановление" }
+  { value: "service_received", label: "Услуга получена" },
+  { value: "application_submitted", label: "Подано заявление" },
+  { value: "service_not_received", label: "Услуга не получена" }
+];
+
+const receiveTypeOptions = [
+  { value: "offline", label: "Обычный" },
+  { value: "online", label: "Электронный" }
 ];
 
 // Обязательные параметры оценки.
@@ -105,6 +109,8 @@ const elements = {
   clearCity: $("#clearCity"),
   cityDropdown: $("#cityDropdown"),
   receiveType: $("#receiveType"),
+  receiveTypeButton: $("#receiveTypeButton"),
+  receiveTypeOptions: $("#receiveTypeOptions"),
   serviceDate: $("#serviceDate"),
   serviceDateButton: $("#serviceDateButton"),
   serviceDateText: $("#serviceDateText"),
@@ -144,7 +150,9 @@ init();
 async function init() {
   applyColorTheme(getStoredColorTheme());
   renderStageOptions();
-  setStage(elements.stage.value || "result_received", { silent: true });
+  setStage(elements.stage.value || "service_received", { silent: true });
+  renderReceiveTypeOptions();
+  setReceiveType(elements.receiveType.value || "offline", { silent: true });
   configureDateInput();
   renderRatings();
   renderQuickTags();
@@ -321,6 +329,8 @@ function bindEvents() {
 
   elements.stageButton.addEventListener("click", () => toggleStageOptions());
   elements.stageOptions.addEventListener("click", handleStageOptionClick);
+  elements.receiveTypeButton.addEventListener("click", () => toggleReceiveTypeOptions());
+  elements.receiveTypeOptions.addEventListener("click", handleReceiveTypeOptionClick);
 
   elements.serviceDateButton.addEventListener("click", () => toggleDatePicker());
   elements.datePicker.addEventListener("click", handleDatePickerClick);
@@ -341,6 +351,7 @@ function bindEvents() {
       closeRegionDropdown();
       closeDatePicker();
       closeStageOptions();
+      closeReceiveTypeOptions();
     }
   });
 
@@ -349,6 +360,7 @@ function bindEvents() {
     if (!event.target.closest(".city-combobox")) closeCityDropdown();
     if (!event.target.closest(".field--date")) closeDatePicker();
     if (!event.target.closest(".stage-select")) closeStageOptions();
+    if (!event.target.closest(".receive-type-select")) closeReceiveTypeOptions();
   });
 
   $$('input[name="searchMode"]').forEach((input) => input.addEventListener("change", () => {
@@ -1196,10 +1208,16 @@ function updateSelectedBox() {
 
 function renderStageOptions() {
   elements.stageOptions.innerHTML = stageOptions.map((option) => `
-    <button class="stage-option" type="button" data-stage-value="${option.value}">
+    <button class="choice-option stage-option" type="button" data-stage-value="${option.value}">
       ${escapeHtml(option.label)}
     </button>
   `).join("");
+}
+
+function normalizeStageValue(value) {
+  if (value === "result_received") return "service_received";
+  if (["refusal", "suspension"].includes(value)) return "service_not_received";
+  return value;
 }
 
 function getStageLabel(value) {
@@ -1207,7 +1225,8 @@ function getStageLabel(value) {
 }
 
 function setStage(value, { silent = false } = {}) {
-  const nextValue = stageOptions.some((option) => option.value === value) ? value : "result_received";
+  const normalizedValue = normalizeStageValue(value);
+  const nextValue = stageOptions.some((option) => option.value === normalizedValue) ? normalizedValue : "service_received";
   elements.stage.value = nextValue;
   elements.stageButton.textContent = getStageLabel(nextValue);
   elements.stageOptions.querySelectorAll("[data-stage-value]").forEach((button) => {
@@ -1238,6 +1257,56 @@ function handleStageOptionClick(event) {
   if (!button) return;
   setStage(button.dataset.stageValue);
   closeStageOptions();
+}
+
+function renderReceiveTypeOptions() {
+  elements.receiveTypeOptions.innerHTML = receiveTypeOptions.map((option) => `
+    <button class="choice-option receive-type-option" type="button" data-receive-type-value="${option.value}">
+      ${escapeHtml(option.label)}
+    </button>
+  `).join("");
+}
+
+function getReceiveTypeLabel(value) {
+  return receiveTypeOptions.find((option) => option.value === value)?.label || receiveTypeOptions[0].label;
+}
+
+function setReceiveType(value, { silent = false } = {}) {
+  const nextValue = receiveTypeOptions.some((option) => option.value === value) ? value : "offline";
+  elements.receiveType.value = nextValue;
+  elements.receiveTypeButton.textContent = getReceiveTypeLabel(nextValue);
+  elements.receiveTypeOptions.querySelectorAll("[data-receive-type-value]").forEach((button) => {
+    const active = button.dataset.receiveTypeValue === nextValue;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-current", active ? "true" : "false");
+  });
+  if (!silent) {
+    dropUnavailableSelection();
+    runSearch();
+    updateSteps();
+  }
+}
+
+function toggleReceiveTypeOptions() {
+  if (elements.receiveTypeOptions.hidden) openReceiveTypeOptions();
+  else closeReceiveTypeOptions();
+}
+
+function openReceiveTypeOptions() {
+  elements.receiveTypeOptions.hidden = false;
+  elements.receiveTypeButton.setAttribute("aria-expanded", "true");
+}
+
+function closeReceiveTypeOptions() {
+  elements.receiveTypeOptions.hidden = true;
+  elements.receiveTypeButton.setAttribute("aria-expanded", "false");
+}
+
+function handleReceiveTypeOptionClick(event) {
+  const button = event.target.closest("[data-receive-type-value]");
+  if (!button) return;
+  setReceiveType(button.dataset.receiveTypeValue);
+  closeReceiveTypeOptions();
 }
 
 function configureDateInput() {
@@ -1573,8 +1642,8 @@ function restoreDraft() {
     elements.comment.value = saved.payload.comment || "";
     elements.video.value = saved.payload.video || "";
     setServiceDate(saved.payload.serviceDate || state.serviceDate, { silent: true });
-    setStage(saved.payload.stage || "result_received", { silent: true });
-    elements.receiveType.value = saved.payload.receiveType || "offline";
+    setStage(saved.payload.stage || "service_received", { silent: true });
+    setReceiveType(saved.payload.receiveType || "offline", { silent: true });
     elements.officialAnswer.checked = Boolean(saved.payload.officialAnswer);
     renderPhotos();
     renderRatingState();
@@ -1597,9 +1666,9 @@ function resetForm() {
   state.photos = [];
   elements.form.reset();
   syncLocationFields(null);
-  elements.receiveType.value = "offline";
+  setReceiveType("offline", { silent: true });
   configureDateInput();
-  setStage("result_received", { silent: true });
+  setStage("service_received", { silent: true });
   localStorage.removeItem(DRAFT_KEY);
   renderQuickTags();
   updateSearchTabUi();

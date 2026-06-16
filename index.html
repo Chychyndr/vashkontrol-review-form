@@ -67,19 +67,18 @@
         </div>
 
         <div class="meta-grid">
-          <div class="field field--stage stage-select">
-            <span>Выберите стадию*</span>
-            <button id="stageButton" class="stage-button" type="button" aria-expanded="false" aria-controls="stageOptions"></button>
-            <input id="stage" type="hidden" value="result_received" />
-            <div id="stageOptions" class="stage-options" hidden></div>
+          <div class="field field--stage choice-select stage-select">
+            <span>Этап оценки</span>
+            <button id="stageButton" class="choice-button stage-button" type="button" aria-expanded="false" aria-controls="stageOptions"></button>
+            <input id="stage" type="hidden" value="service_received" />
+            <div id="stageOptions" class="choice-options stage-options" hidden></div>
           </div>
-          <label class="field">
+          <div class="field field--receive-type choice-select receive-type-select">
             <span>Тип получения услуги</span>
-            <select id="receiveType">
-              <option value="offline">Обычный</option>
-              <option value="online">Электронный</option>
-            </select>
-          </label>
+            <button id="receiveTypeButton" class="choice-button receive-type-button" type="button" aria-expanded="false" aria-controls="receiveTypeOptions"></button>
+            <input id="receiveType" type="hidden" value="offline" />
+            <div id="receiveTypeOptions" class="choice-options receive-type-options" hidden></div>
+          </div>
           <label class="field field--date">
             <span>Дата</span>
             <button id="serviceDateButton" class="date-field" type="button" aria-expanded="false" aria-controls="datePicker">

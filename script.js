@@ -11,6 +11,13 @@ const catalog = {
   organizations: []
 };
 
+const stageOptions = [
+  { value: "application_submitted", label: "Подача заявления (документов)" },
+  { value: "result_received", label: "Получение результата государственной услуги" },
+  { value: "refusal", label: "Отказ" },
+  { value: "suspension", label: "Приостановление" }
+];
+
 // Обязательные параметры оценки.
 const questions = [
   { id: "serviceTime", text: "Время предоставления государственной услуги", icon: "clock" },
@@ -104,6 +111,8 @@ const elements = {
   datePicker: $("#datePicker"),
   dateError: $("#dateError"),
   stage: $("#stage"),
+  stageButton: $("#stageButton"),
+  stageOptions: $("#stageOptions"),
   results: $("#searchResults"),
   selectedBox: $("#selectedBox"),
   selectionError: $("#selectionError"),
@@ -134,6 +143,8 @@ init();
 
 async function init() {
   applyColorTheme(getStoredColorTheme());
+  renderStageOptions();
+  setStage(elements.stage.value || "result_received", { silent: true });
   configureDateInput();
   renderRatings();
   renderQuickTags();
@@ -308,6 +319,9 @@ function bindEvents() {
     updateSteps();
   });
 
+  elements.stageButton.addEventListener("click", () => toggleStageOptions());
+  elements.stageOptions.addEventListener("click", handleStageOptionClick);
+
   elements.serviceDateButton.addEventListener("click", () => toggleDatePicker());
   elements.datePicker.addEventListener("click", handleDatePickerClick);
   elements.datePicker.addEventListener("keydown", handleDatePickerKeydown);
@@ -326,6 +340,7 @@ function bindEvents() {
     if (event.key === "Escape") {
       closeRegionDropdown();
       closeDatePicker();
+      closeStageOptions();
     }
   });
 
@@ -333,6 +348,7 @@ function bindEvents() {
     if (!event.target.closest(".region-combobox")) closeRegionDropdown();
     if (!event.target.closest(".city-combobox")) closeCityDropdown();
     if (!event.target.closest(".field--date")) closeDatePicker();
+    if (!event.target.closest(".stage-select")) closeStageOptions();
   });
 
   $$('input[name="searchMode"]').forEach((input) => input.addEventListener("change", () => {
@@ -1178,6 +1194,52 @@ function updateSelectedBox() {
   elements.selectedBox.hidden = false;
 }
 
+function renderStageOptions() {
+  elements.stageOptions.innerHTML = stageOptions.map((option) => `
+    <button class="stage-option" type="button" data-stage-value="${option.value}">
+      ${escapeHtml(option.label)}
+    </button>
+  `).join("");
+}
+
+function getStageLabel(value) {
+  return stageOptions.find((option) => option.value === value)?.label || stageOptions[0].label;
+}
+
+function setStage(value, { silent = false } = {}) {
+  const nextValue = stageOptions.some((option) => option.value === value) ? value : "result_received";
+  elements.stage.value = nextValue;
+  elements.stageButton.textContent = getStageLabel(nextValue);
+  elements.stageOptions.querySelectorAll("[data-stage-value]").forEach((button) => {
+    const active = button.dataset.stageValue === nextValue;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-current", active ? "true" : "false");
+  });
+  if (!silent) updateSteps();
+}
+
+function toggleStageOptions() {
+  if (elements.stageOptions.hidden) openStageOptions();
+  else closeStageOptions();
+}
+
+function openStageOptions() {
+  elements.stageOptions.hidden = false;
+  elements.stageButton.setAttribute("aria-expanded", "true");
+}
+
+function closeStageOptions() {
+  elements.stageOptions.hidden = true;
+  elements.stageButton.setAttribute("aria-expanded", "false");
+}
+
+function handleStageOptionClick(event) {
+  const button = event.target.closest("[data-stage-value]");
+  if (!button) return;
+  setStage(button.dataset.stageValue);
+  closeStageOptions();
+}
+
 function configureDateInput() {
   const today = new Date();
   state.dateMin = formatDate(addYears(today, -3));
@@ -1511,7 +1573,7 @@ function restoreDraft() {
     elements.comment.value = saved.payload.comment || "";
     elements.video.value = saved.payload.video || "";
     setServiceDate(saved.payload.serviceDate || state.serviceDate, { silent: true });
-    elements.stage.value = saved.payload.stage || "service_received";
+    setStage(saved.payload.stage || "result_received", { silent: true });
     elements.receiveType.value = saved.payload.receiveType || "offline";
     elements.officialAnswer.checked = Boolean(saved.payload.officialAnswer);
     renderPhotos();
@@ -1537,7 +1599,7 @@ function resetForm() {
   syncLocationFields(null);
   elements.receiveType.value = "offline";
   configureDateInput();
-  elements.stage.value = "service_received";
+  setStage("result_received", { silent: true });
   localStorage.removeItem(DRAFT_KEY);
   renderQuickTags();
   updateSearchTabUi();

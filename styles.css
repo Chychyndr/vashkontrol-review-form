@@ -329,7 +329,7 @@ h1 {
   font-size: 13px;
   font-weight: 700;
 }
-.field input, .field select, .field textarea, .search-input-wrap, .combo, .date-field {
+.field input, .field select, .field textarea, .search-input-wrap, .combo, .date-field, .stage-button {
   width: 100%;
   border: 1px solid var(--line-strong);
   border-radius: 12px;
@@ -373,7 +373,62 @@ h1 {
   margin: 0;
 }
 .field--plain input { padding: 0 12px; }
-.region-combobox, .city-combobox, .field--date { position: relative; }
+.region-combobox, .city-combobox, .field--date, .stage-select { position: relative; }
+.stage-button {
+  min-height: 44px;
+  display: grid;
+  grid-template-columns: 1fr 20px;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  text-align: left;
+}
+.stage-button::after {
+  content: "";
+  width: 10px;
+  height: 10px;
+  justify-self: end;
+  border-right: 2px solid var(--green-dark);
+  border-bottom: 2px solid var(--green-dark);
+  transform: rotate(45deg);
+  transition: transform 0.16s ease;
+}
+.stage-button[aria-expanded="true"]::after {
+  transform: rotate(225deg);
+}
+.stage-button:hover, .stage-button:focus-visible {
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px rgba(118, 168, 42, 0.13);
+  outline: none;
+}
+.stage-options {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 24;
+  display: grid;
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 18px 48px rgba(31, 42, 31, 0.16);
+}
+.stage-option {
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+}
+.stage-option:hover, .stage-option:focus-visible, .stage-option.is-active {
+  background: var(--green-soft);
+  color: var(--green-dark);
+  outline: none;
+}
 .combo {
   display: grid;
   grid-template-columns: 1fr 34px;
@@ -1123,6 +1178,11 @@ pre {
   .card { padding: 16px; }
   .card__head { display: grid; gap: 10px; }
   .meta-grid, .details-grid { grid-template-columns: 1fr; }
+  .stage-options {
+    position: static;
+    box-shadow: none;
+    margin-top: 0;
+  }
   .field--city { display: none; }
   .region-hint-cell {
     min-height: auto;

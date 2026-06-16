@@ -22,6 +22,18 @@ expectMatch("classic theme is default body class", html, /<body class="theme-cla
 expectMatch("theme switcher has classic option", html, /data-theme-option="classic"/);
 expectMatch("theme switcher has official option", html, /data-theme-option="official"/);
 expectMatch("theme switcher buttons are not form submit buttons", html, /<button[^>]+type="button"[^>]+data-theme-option="classic"[\s\S]*?<button[^>]+type="button"[^>]+data-theme-option="official"/);
+expectMatch("stage uses original custom dropdown", html, /id="stageButton"[\s\S]*id="stage" type="hidden" value="result_received"[\s\S]*id="stageOptions"/);
+[
+  "Подача заявления (документов)",
+  "Получение результата государственной услуги",
+  "Отказ",
+  "Приостановление"
+].forEach((stageLabel) => {
+  assert.ok(js.includes(stageLabel), `original stage option: ${stageLabel}`);
+});
+expectMatch("stage dropdown renders options", js, /function renderStageOptions\(\)/);
+expectMatch("stage value setter updates hidden input", js, /function setStage\(value[\s\S]*?elements\.stage\.value = nextValue;/);
+expectMatch("stage dropdown becomes static on mobile", css, /@media \(max-width: 900px\)[\s\S]*?\.stage-options\s*\{[\s\S]*?position:\s*static;/);
 expectMatch("theme localStorage key exists", js, /vashkontrol-color-theme/);
 expectMatch("official class toggled", js, /classList\.toggle\("theme-official", official\)/);
 expectMatch("classic class toggled", js, /classList\.toggle\("theme-classic", !official\)/);

@@ -67,14 +67,12 @@
         </div>
 
         <div class="meta-grid">
-          <label class="field">
-            <span>Этап оценки</span>
-            <select id="stage">
-              <option value="service_received">Услуга получена</option>
-              <option value="application_submitted">Подано заявление</option>
-              <option value="service_not_received">Услуга не получена</option>
-            </select>
-          </label>
+          <div class="field field--stage stage-select">
+            <span>Выберите стадию*</span>
+            <button id="stageButton" class="stage-button" type="button" aria-expanded="false" aria-controls="stageOptions"></button>
+            <input id="stage" type="hidden" value="result_received" />
+            <div id="stageOptions" class="stage-options" hidden></div>
+          </div>
           <label class="field">
             <span>Тип получения услуги</span>
             <select id="receiveType">

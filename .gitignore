@@ -8,3 +8,4 @@ Thumbs.db
 .idea/
 outputs/
 .codex-remote-attachments/
+server-*.log
